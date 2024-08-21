@@ -44,9 +44,7 @@ public class WaterController {
         consumTransactionsVo.setThermalControl(0);
         consumTransactionsVo.setTimeFlow(0);
         return consumTransactionsVo;
-
     }
-
     @PostMapping("/OffLines")
     public OffLinesVo offLines(@RequestHeader("Device-ID") String deviceId, @RequestBody OffLinesDto offLinesDto) {
         System.out.println(deviceId);

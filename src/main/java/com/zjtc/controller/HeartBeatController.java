@@ -1,7 +1,13 @@
 package com.zjtc.controller;
 
+import com.zjtc.dto.ConsumTransactionsDto;
+import com.zjtc.dto.OffLinesDto;
 import com.zjtc.dto.ServerTimeDto;
+import com.zjtc.dto.WhiteListDto;
+import com.zjtc.vo.ConsumTransactionsVo;
+import com.zjtc.vo.OffLinesVo;
 import com.zjtc.vo.ServerTimeVo;
+import com.zjtc.vo.WhiteListVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,4 +55,7 @@ public class HeartBeatController {
         serverTimeVo.setDoubleControl(0);
         return serverTimeVo;
     }
+
+
+
 }
