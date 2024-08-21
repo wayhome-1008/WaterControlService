@@ -44,8 +44,8 @@ public class WaterController {
         serverTimeVo.setStatus(1);
         serverTimeVo.setMsg("");
         serverTimeVo.setTime(formattedDateTime + adjustedDayOfWeek);
-        serverTimeVo.setWLUptate(0);
-        serverTimeVo.setWLPage(0);
+        serverTimeVo.setWhiteListUpDate(0);
+        serverTimeVo.setWhiteListPage(0);
         serverTimeVo.setDoubleControl(0);
         return serverTimeVo;
     }
