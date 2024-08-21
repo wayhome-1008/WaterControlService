@@ -4,7 +4,6 @@ import com.zjtc.dto.ServerTimeDto;
 import com.zjtc.vo.ServerTimeVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,7 +25,8 @@ public class WaterController {
     //2.1.获取服务器时间接口
     @PostMapping("/ServerTime")
     public ServerTimeVo serverTime(@RequestHeader("Device-ID") String deviceId, @RequestBody ServerTimeDto serverTimeDto) {
-//        List<VPosDevice> vPosDeviceList = ivPosDeviceService.getPosDevice(deviceId);
+        System.out.println("deviceId:" + deviceId);
+        System.out.println("serverTimeDto:" + serverTimeDto);
         // 获取当前日期时间
         Date now = new Date();
         //获取当前日期星期一为1，星期六为6，星期天为0

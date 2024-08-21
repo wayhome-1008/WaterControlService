@@ -19,10 +19,10 @@ public class ServerTimeVo {
     private Double offAmount;
     //1：有白名单更新 0：无
     @JsonProperty("WLUptate")
-    private Integer WLUptate;
+    private Integer whiteListUpDate;
     //起始页数（当WLUpdate为1、WLPage为0时，清除所有白名单）
     @JsonProperty("WLPage")
-    private Integer WLPage;
+    private Integer whiteListPage;
     //1：同时控制两个通道开关 0：单控
     @JsonProperty("DoubleControl")
     private Integer doubleControl;
