@@ -9,8 +9,6 @@ package com.zjtc.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-import java.util.List;
-
 @Data
 public class ConsumTransactionsDto {
     //消费序号(年月日时分秒+2个字节序号(0~65535))，用于识别上传数据不重复

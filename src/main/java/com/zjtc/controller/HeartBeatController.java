@@ -1,21 +1,23 @@
 package com.zjtc.controller;
 
-import com.zjtc.dto.ConsumTransactionsDto;
-import com.zjtc.dto.OffLinesDto;
 import com.zjtc.dto.ServerTimeDto;
-import com.zjtc.dto.WhiteListDto;
-import com.zjtc.vo.ConsumTransactionsVo;
-import com.zjtc.vo.OffLinesVo;
+import com.zjtc.entity.PosDevicejob;
+import com.zjtc.entity.WatDevice;
+import com.zjtc.entity.WatDevicejobRecord;
+import com.zjtc.service.IPosDevicejobService;
+import com.zjtc.service.IWatDeviceService;
+import com.zjtc.service.IWatDevicejobRecordService;
 import com.zjtc.vo.ServerTimeVo;
-import com.zjtc.vo.WhiteListVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 /**
  * @Author: way
@@ -28,11 +30,21 @@ import java.util.Date;
 @Transactional(rollbackFor = Exception.class)
 @Slf4j
 public class HeartBeatController {
+
+    private final IWatDeviceService watDeviceService;
+    private final IPosDevicejobService posDevicejobService;
+    private final IWatDevicejobRecordService watDevicejobRecordService;
+
     //2.1.获取服务器时间接口
     @PostMapping("/ServerTime")
     public ServerTimeVo serverTime(@RequestHeader("Device-ID") String deviceId, @RequestBody ServerTimeDto serverTimeDto) {
-        System.out.println("deviceId:" + deviceId);
-        System.out.println("serverTimeDto:" + serverTimeDto);
+        List<WatDevice> watDeviceList = watDeviceService.getWatDevice(deviceId);
+        ServerTimeVo serverTimeVo = new ServerTimeVo();
+        if (ObjectUtils.isEmpty(watDeviceList)) {
+            serverTimeVo.setStatus(0);
+            serverTimeVo.setMsg("设备不存在");
+            return serverTimeVo;
+        }
         // 获取当前日期时间
         Date now = new Date();
         //获取当前日期星期一为1，星期六为6，星期天为0
@@ -46,16 +58,28 @@ public class HeartBeatController {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
         // 格式化日期时间，并输出字符串
         String formattedDateTime = sdf.format(now);
-        ServerTimeVo serverTimeVo = new ServerTimeVo();
         serverTimeVo.setStatus(1);
         serverTimeVo.setMsg("");
         serverTimeVo.setTime(formattedDateTime + adjustedDayOfWeek);
+        List<PosDevicejob> posDevicejobServiceList = posDevicejobService.getList();
+        if (ObjectUtils.isNotEmpty(posDevicejobServiceList)) {
+            //把查询到的数据遍历
+            for (PosDevicejob posDevicejob : posDevicejobServiceList) {
+                //根据设备sn和设备任务id查询子表数据
+                WatDevicejobRecord watDevicejobRecord = watDevicejobRecordService.get(posDevicejob.getDeviceJobID(), deviceId);
+                //如果子表没有数据那么就添加一条
+                if (ObjectUtils.isEmpty(watDevicejobRecord)) {
+                    watDevicejobRecordService.add(posDevicejob, deviceId);
+                }
+            }
+        }
         serverTimeVo.setWhiteListUpDate(0);
-        serverTimeVo.setWhiteListPage(0);
-        serverTimeVo.setDoubleControl(0);
+        serverTimeVo.setWhiteListPage(1);
+        serverTimeVo.setDoubleControl(1);
+        List<WatDevicejobRecord> watDevicejobRecordList = watDevicejobRecordService.getByDeviceId(deviceId);
+        if (ObjectUtils.isNotEmpty(watDevicejobRecordList)) {
+            serverTimeVo.setWhiteListUpDate(1);
+        }
         return serverTimeVo;
     }
-
-
-
 }
