@@ -38,9 +38,9 @@ public class HeartBeatController {
     //2.1.获取服务器时间接口
     @PostMapping("/ServerTime")
     public ServerTimeVo serverTime(@RequestHeader("Device-ID") String deviceId, @RequestBody ServerTimeDto serverTimeDto) {
-        List<WatDevice> watDeviceList = watDeviceService.getWatDevice(deviceId);
+        WatDevice watDevice = watDeviceService.getWatDevice(deviceId);
         ServerTimeVo serverTimeVo = new ServerTimeVo();
-        if (ObjectUtils.isEmpty(watDeviceList)) {
+        if (ObjectUtils.isEmpty(watDevice)) {
             serverTimeVo.setStatus(0);
             serverTimeVo.setMsg("设备不存在");
             return serverTimeVo;

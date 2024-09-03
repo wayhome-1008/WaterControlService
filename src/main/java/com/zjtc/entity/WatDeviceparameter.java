@@ -4,14 +4,16 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+
 import java.io.Serializable;
 import java.math.BigDecimal;
+
 import lombok.Getter;
 import lombok.Setter;
 
 /**
  * <p>
- * 
+ *
  * </p>
  *
  * @author way
@@ -31,7 +33,13 @@ public class WatDeviceparameter implements Serializable {
     private Integer deviceID;
 
     /**
-     * 计费方式(1.计时扣费 2.计量扣费)
+     * 控制模式(0:常出 1:预扣)
+     */
+    @TableField("DeviceConModeID")
+    private Integer deviceConModeID;
+
+    /**
+     * 计费方式(0.计时扣费 1.计量扣费)
      */
     @TableField("DevicePayModeID")
     private Integer devicePayModeID;

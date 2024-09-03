@@ -28,4 +28,14 @@ public class VEmployeeDataServiceImpl extends ServiceImpl<VEmployeeDataMapper, V
         queryWrapper.eq("EmployeeID",employeeId);
         return vEmployeeDataMapper.selectOne(queryWrapper);
     }
+
+    @Override
+    public VEmployeeData getEmployeeByCardNo(Long cardNo) {
+        QueryWrapper<VEmployeeData> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("CardSerNo", cardNo);
+        if (vEmployeeDataMapper.selectOne(queryWrapper) != null) {
+            return vEmployeeDataMapper.selectOne(queryWrapper);
+        }
+        return null;
+    }
 }

@@ -36,7 +36,7 @@ public class CodeGenerator {
                         builder -> {
                             builder
                                     // 设置生成表名
-                                    .addInclude("v_employee_data")
+                                    .addInclude("wat_consumeemployeecount")
                                     // 开启lombok
                                     .entityBuilder()
                                     .enableLombok()

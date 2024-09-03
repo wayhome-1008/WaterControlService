@@ -15,4 +15,6 @@ public interface IVEmployeeDataService extends IService<VEmployeeData> {
 
     VEmployeeData getByEmployeeId(Integer employeeId);
 
+    VEmployeeData getEmployeeByCardNo(Long cardNo);
+
 }

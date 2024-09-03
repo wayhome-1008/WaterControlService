@@ -25,6 +25,6 @@ public class ConsumTransactionsDto {
     private String amount;
     //水流通道（1：通道一  2：通道二 3：双控）
     @JsonProperty("Channel")
-    private String channel;
+    private Integer channel;
 
 }

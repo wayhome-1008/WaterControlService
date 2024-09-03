@@ -13,4 +13,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IWatDeviceparameterService extends IService<WatDeviceparameter> {
 
+    WatDeviceparameter getByDeviceId(Integer deviceId);
+
 }

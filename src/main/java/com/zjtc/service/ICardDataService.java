@@ -1,9 +1,7 @@
 package com.zjtc.service;
 
-import com.zjtc.entity.WatDevice;
+import com.zjtc.entity.CardData;
 import com.baomidou.mybatisplus.extension.service.IService;
-
-import java.util.List;
 
 /**
  * <p>
@@ -13,8 +11,8 @@ import java.util.List;
  * @author way
  * @since 2024-09-02
  */
-public interface IWatDeviceService extends IService<WatDevice> {
+public interface ICardDataService extends IService<CardData> {
 
-    WatDevice getWatDevice(String deviceId);
+    CardData getCardByCardNo(Long cardNo);
 
 }

@@ -1,9 +1,7 @@
 package com.zjtc.service;
 
-import com.zjtc.entity.WatDevice;
+import com.zjtc.entity.EmployeeBags;
 import com.baomidou.mybatisplus.extension.service.IService;
-
-import java.util.List;
 
 /**
  * <p>
@@ -13,8 +11,8 @@ import java.util.List;
  * @author way
  * @since 2024-09-02
  */
-public interface IWatDeviceService extends IService<WatDevice> {
+public interface IEmployeeBagsService extends IService<EmployeeBags> {
 
-    WatDevice getWatDevice(String deviceId);
+    EmployeeBags getBags(Integer employeeId, Integer i);
 
 }

@@ -1,20 +1,31 @@
 package com.zjtc.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.zjtc.entity.WatCardrate;
 import com.zjtc.mapper.WatCardrateMapper;
 import com.zjtc.service.IWatCardrateService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
  * <p>
- *  服务实现类
+ * 服务实现类
  * </p>
  *
  * @author way
  * @since 2024-09-02
  */
 @Service
+@RequiredArgsConstructor
 public class WatCardrateServiceImpl extends ServiceImpl<WatCardrateMapper, WatCardrate> implements IWatCardrateService {
 
+    private final WatCardrateMapper watCardrateMapper;
+
+    @Override
+    public WatCardrate getByDeviceId(Integer deviceId) {
+        QueryWrapper<WatCardrate> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("DeviceID", deviceId);
+        return watCardrateMapper.selectOne(queryWrapper);
+    }
 }
