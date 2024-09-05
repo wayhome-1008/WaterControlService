@@ -8,6 +8,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * <p>
  * 服务实现类
@@ -26,6 +28,20 @@ public class WatCardrateServiceImpl extends ServiceImpl<WatCardrateMapper, WatCa
     public WatCardrate getByDeviceId(Integer deviceId) {
         QueryWrapper<WatCardrate> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("DeviceID", deviceId);
+        return watCardrateMapper.selectOne(queryWrapper);
+    }
+
+    @Override
+    public List<WatCardrate> getListByDeviceId(Integer deviceId) {
+        QueryWrapper<WatCardrate> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("DeviceID", deviceId);
+        return watCardrateMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    public WatCardrate getByCardTypeId(Integer cardTypeId) {
+        QueryWrapper<WatCardrate> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("CardTypeID", cardTypeId);
         return watCardrateMapper.selectOne(queryWrapper);
     }
 }
