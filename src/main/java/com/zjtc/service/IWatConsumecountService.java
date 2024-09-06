@@ -15,6 +15,7 @@ import java.math.BigDecimal;
  */
 public interface IWatConsumecountService extends IService<WatConsumecount> {
 
-    WatConsumecount createOrUpdateConsumeCount(Integer deviceId, BigDecimal amount);
+    WatConsumecount createOrUpdateConsumeCount(Integer deviceId, BigDecimal amount,Long elapsedTimeSeconds);
 
+    WatConsumecount getWatConsumeCountByDeviceId(Integer deviceId);
 }

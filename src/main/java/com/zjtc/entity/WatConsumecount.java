@@ -40,4 +40,7 @@ public class WatConsumecount implements Serializable {
 
     @TableField("ConsumeDate")
     private Date consumeDate;
+
+    @TableField("Count")
+    private Long count;
 }
