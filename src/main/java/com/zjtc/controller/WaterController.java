@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 /**
@@ -53,13 +54,13 @@ public class WaterController {
         // 根据卡号查询卡信息
         CardData cardData = cardDataService.getCardByCardNo(cardNo);
         if (ObjectUtils.isEmpty(watDevice)) {
-            return constructionResult(0, "设备不存在", null, null, cardNo, consumTransactionsVo);
+            return constructionResult(0, "设备不存在", cardNo, consumTransactionsVo);
         }
         if (ObjectUtils.isEmpty(consumTransactionsDto.getCardNo())) {
-            return constructionResult(0, "卡号不能为空", null, null, cardNo, consumTransactionsVo);
+            return constructionResult(0, "卡号不能为空", cardNo, consumTransactionsVo);
         }
         if (ObjectUtils.isEmpty(cardData)) {
-            return constructionResult(0, "卡号不存在", null, null, cardNo, consumTransactionsVo);
+            return constructionResult(0, "卡号不存在", cardNo, consumTransactionsVo);
         }
         // 根据deviceId获取允许卡类的一个集合
         List<WatCardrate> list = watCardRateService.getListByDeviceId(watDevice.getDeviceID());
@@ -70,25 +71,25 @@ public class WaterController {
         }
         // 判断卡片类型集合中是否包含了刷的卡的类型
         if (!cardTypeIdList.contains(cardData.getCardTypeID())) {
-            return constructionResult(0, "允许卡类中没有此类卡", null, null, cardNo, consumTransactionsVo);
+            return constructionResult(0, "允许卡类中没有此类卡", cardNo, consumTransactionsVo);
         }
         //卡状态
         if (cardData.getCardStatusID() != 1) {
-            return constructionResult(0, "卡状态异常", null, null, cardNo, consumTransactionsVo);
+            return constructionResult(0, "卡状态异常", cardNo, consumTransactionsVo);
         }
         //卡有效期 根据cardStartDate和cardEndDate判断当天是否再这之间
         boolean validCardDate = isValidCardDate(cardData.getCardStartDate(), cardData.getCardEndDate());
         if (!validCardDate) {
-            return constructionResult(0, "卡有效期异常", null, null, cardNo, consumTransactionsVo);
+            return constructionResult(0, "卡有效期异常", cardNo, consumTransactionsVo);
         }
         //BagId1:现金钱包 BagId2:补助钱包
         EmployeeBags employeeBags = employeeBagsService.getBags(cardData.getEmployeeID(), 1);
         if (ObjectUtils.isEmpty(employeeBags)) {
-            return constructionResult(0, "现金钱包不存在", null, null, cardNo, consumTransactionsVo);
+            return constructionResult(0, "现金钱包不存在", cardNo, consumTransactionsVo);
         }
         EmployeeBags grantsEmployeeBags = employeeBagsService.getBags(cardData.getEmployeeID(), 2);
         if (ObjectUtils.isEmpty(grantsEmployeeBags)) {
-            return constructionResult(0, "补助钱包不存在", null, null, cardNo, consumTransactionsVo);
+            return constructionResult(0, "补助钱包不存在", cardNo, consumTransactionsVo);
         }
         // 根据deviceId查询设备基础参数信息
         WatDeviceparameter watDeviceparameter = watDeviceParameterService.getByDeviceId(watDevice.getDeviceID());
@@ -115,14 +116,14 @@ public class WaterController {
                     // 上次消费时间要在得到的这个时间之前才能正常使用否则返回错误
                     // 判断最后消费时间是否在得到的时间之后，如果在后面那么就返回错误
                     if (watLastconsume.getLastConsumeDate().after(thresholdTime)) {
-                        return constructionResult(0, "两次消费间隔小于" + watDeviceparameter.getConsumeGap() + "分钟", null, null, cardNo, consumTransactionsVo);
+                        return constructionResult(0, "两次消费间隔小于" + watDeviceparameter.getConsumeGap() + "分钟", cardNo, consumTransactionsVo);
                     }
                 }
                 // 如果每日最大消费次数大于0进入判断
                 if (watDeviceparameter.getDailyMaxConsume() > 0) {
                     // 如果设置的每日最大消费次数小于等于表中的每日消费次数那么返回错误
                     if (watDeviceparameter.getDailyMaxConsume() <= watLastconsume.getDailyTimes()) {
-                        return constructionResult(0, "超过每日最大消费次数", null, null, cardNo, consumTransactionsVo);
+                        return constructionResult(0, "超过每日最大消费次数", cardNo, consumTransactionsVo);
                     }
                 }
             }
@@ -130,7 +131,7 @@ public class WaterController {
                 // 每日最大消费量大于0进入判断
                 if (Integer.parseInt(watDeviceparameter.getDailyConsumeTimes()) > 0) {
                     if (Long.parseLong(watDeviceparameter.getDailyConsumeTimes()) < watConsumecount.getCount()) {
-                        return constructionResult(0, "超过每日最大消费量" + watDeviceparameter.getConsumeGap() + "分钟", null, null, cardNo, consumTransactionsVo);
+                        return constructionResult(0, "超过每日最大消费量" + watDeviceparameter.getConsumeGap() + "分钟", cardNo, consumTransactionsVo);
                     }
                 }
             }
@@ -149,7 +150,7 @@ public class WaterController {
             BigDecimal setSubsidy = Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
             // 总余额
             BigDecimal sum = setMoney.add(setSubsidy);
-            BigDecimal divide = sum.divide(BigDecimal.valueOf(2));
+            BigDecimal divide = sum.divide(BigDecimal.valueOf(2), RoundingMode.HALF_UP);
             // 卡费率乘以(单次最大消费量除以2) 单次最大消费金额的一半
             BigDecimal multiply = BigDecimal.ZERO;
             if (watCardrate.getCardRate().compareTo(BigDecimal.ZERO) > 0 && Integer.parseInt(watDeviceparameter.getSingleConsumeTimes()) > 0) {
@@ -222,7 +223,7 @@ public class WaterController {
                     long elapsedTimeSeconds = elapsedTimeMillis / 1000;
                     grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
                 }
-                return constructionResult(1, "补助消费", employeeBags, grantsEmployeeBags, cardData.getCardSerNo(), consumTransactionsVo);
+                return constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo);
             } else {
                 if (totalMoney.compareTo(amount) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
@@ -241,9 +242,9 @@ public class WaterController {
                             cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
                         }
                     }
-                    return constructionResult(1, "补助及现金消费", employeeBags, grantsEmployeeBags, cardData.getCardSerNo(), consumTransactionsVo);
+                    return constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo);
                 } else {
-                    return constructionResult(0, "补助及现金不足", employeeBags, grantsEmployeeBags, cardData.getCardSerNo(), consumTransactionsVo);
+                    return constructionResult(0, "补助及现金不足", cardData.getCardSerNo(), consumTransactionsVo);
                 }
             }
         }
@@ -259,7 +260,7 @@ public class WaterController {
                     long elapsedTimeSeconds = elapsedTimeMillis / 1000;
                     cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
                 }
-                return constructionResult(1, "现金消费", employeeBags, grantsEmployeeBags, cardData.getCardSerNo(), consumTransactionsVo);
+                return constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo);
             } else {
                 //先现金后补助->现金不足情况
                 //现金+补助
@@ -282,9 +283,9 @@ public class WaterController {
                             grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
                         }
                     }
-                    return constructionResult(1, "补助及现金消费", employeeBags, grantsEmployeeBags, cardData.getCardSerNo(), consumTransactionsVo);
+                    return constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo);
                 } else {
-                    return constructionResult(0, "补助及现金不足", employeeBags, grantsEmployeeBags, cardData.getCardSerNo(), consumTransactionsVo);
+                    return constructionResult(0, "补助及现金不足", cardData.getCardSerNo(), consumTransactionsVo);
                 }
             }
         }
@@ -299,9 +300,9 @@ public class WaterController {
                     long elapsedTimeSeconds = elapsedTimeMillis / 1000;
                     grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
                 }
-                return constructionResult(1, "补助消费", employeeBags, grantsEmployeeBags, cardData.getCardSerNo(), consumTransactionsVo);
+                return constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo);
             } else {
-                return constructionResult(0, "补助不足", employeeBags, grantsEmployeeBags, cardData.getCardSerNo(), consumTransactionsVo);
+                return constructionResult(0, "补助不足", cardData.getCardSerNo(), consumTransactionsVo);
             }
         }
         // 仅现金
@@ -316,15 +317,15 @@ public class WaterController {
                     //仅现金消费
                     cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
                 }
-                return constructionResult(1, "现金消费", employeeBags, grantsEmployeeBags, cardData.getCardSerNo(), consumTransactionsVo);
+                return constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo);
             } else {
-                return constructionResult(0, "现金不足", employeeBags, grantsEmployeeBags, cardData.getCardSerNo(), consumTransactionsVo);
+                return constructionResult(0, "现金不足", cardData.getCardSerNo(), consumTransactionsVo);
             }
         }
-        return constructionResult(0, "水控机消费模式配置错误", null, null, cardData.getCardSerNo(), consumTransactionsVo);
+        return constructionResult(0, "水控机消费模式配置错误", cardData.getCardSerNo(), consumTransactionsVo);
     }
 
-    private ConsumTransactionsVo constructionResult(Integer status, String msg, EmployeeBags employeeBags, EmployeeBags grantsEmployeeBags, Long cardNo, ConsumTransactionsVo consumTransactionsVo) {
+    private ConsumTransactionsVo constructionResult(Integer status, String msg, Long cardNo, ConsumTransactionsVo consumTransactionsVo) {
         consumTransactionsVo.setStatus(status);
         //返回失败结果
         if (status == 0) {
@@ -575,18 +576,14 @@ public class WaterController {
                 if (totalMoney.compareTo(amount) >= 0) {
                     //先补助后现金->补助不够->查看补助+现金足够
                     //补助钱包
+                    Date currentTime = new Date();
+                    long elapsedTimeMillis = currentTime.getTime() - startTime.getTime();
+                    // 转换为秒
+                    long elapsedTimeSeconds = elapsedTimeMillis / 1000;
                     if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) != 0) {
-                        Date currentTime = new Date();
-                        long elapsedTimeMillis = currentTime.getTime() - startTime.getTime();
-                        // 转换为秒
-                        long elapsedTimeSeconds = elapsedTimeMillis / 1000;
                         //先补助后现金
                         grantsFirstCashAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
                     } else {
-                        Date currentTime = new Date();
-                        long elapsedTimeMillis = currentTime.getTime() - startTime.getTime();
-                        // 转换为秒
-                        long elapsedTimeSeconds = elapsedTimeMillis / 1000;
                         //当补助为0 实际上还是纯现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
                     }
@@ -614,18 +611,14 @@ public class WaterController {
                 BigDecimal totalMoney = bagMoney.add(grantsBagsBagMoney);
                 //先现金后补助->现金不足情况->是否现金+补助足够
                 if (totalMoney.compareTo(amount) >= 0) {
+                    Date currentTime = new Date();
+                    long elapsedTimeMillis = currentTime.getTime() - startTime.getTime();
+                    // 转换为秒
+                    long elapsedTimeSeconds = elapsedTimeMillis / 1000;
                     if (bagMoney.compareTo(BigDecimal.ZERO) != 0) {
-                        Date currentTime = new Date();
-                        long elapsedTimeMillis = currentTime.getTime() - startTime.getTime();
-                        // 转换为秒
-                        long elapsedTimeSeconds = elapsedTimeMillis / 1000;
                         //判断现金不为0->先现金后补助方法
                         cashFirstGrantsAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
                     } else {
-                        Date currentTime = new Date();
-                        long elapsedTimeMillis = currentTime.getTime() - startTime.getTime();
-                        // 转换为秒
-                        long elapsedTimeSeconds = elapsedTimeMillis / 1000;
                         //现金为0  说明实际上还是仅补助消费
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
                     }
