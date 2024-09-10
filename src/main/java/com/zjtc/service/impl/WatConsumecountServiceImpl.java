@@ -32,7 +32,7 @@ public class WatConsumecountServiceImpl extends ServiceImpl<WatConsumecountMappe
     private final WatConsumecountMapper watConsumecountMapper;
 
     @Override
-    public WatConsumecount createOrUpdateConsumeCount(Integer deviceId, BigDecimal amount, Long elapsedTimeSeconds) {
+    public WatConsumecount createOrUpdateConsumeCount(Integer deviceId, BigDecimal amount, Long s) {
         // 获取当前日期
         LocalDate today = LocalDate.now();
         // 格式化为字符串
@@ -47,7 +47,7 @@ public class WatConsumecountServiceImpl extends ServiceImpl<WatConsumecountMappe
             watConsumecount.setConsumeMoney(Optional.of(watConsumecount).map(WatConsumecount::getConsumeMoney).orElse(BigDecimal.ZERO).add(amount));
             watConsumecount.setConsumeTimes(Optional.of(watConsumecount).map(WatConsumecount::getConsumeTimes).orElse(0) + 1);
             watConsumecount.setConsumeDate(convertToDate(today));
-            watConsumecount.setCount(Optional.of(watConsumecount).map(WatConsumecount::getCount).orElse(0L) + elapsedTimeSeconds);
+            watConsumecount.setDailySpendTime(Optional.of(watConsumecount).map(WatConsumecount::getDailySpendTime).orElse(0L) + s);
             return watConsumecount;
         } else {
             //新增
@@ -56,7 +56,7 @@ public class WatConsumecountServiceImpl extends ServiceImpl<WatConsumecountMappe
             watConsumecount.setConsumeTimes(1);
             watConsumecount.setConsumeDate(convertToDate(today));
             watConsumecount.setDeviceID(deviceId);
-            watConsumecount.setCount(elapsedTimeSeconds);
+            watConsumecount.setDailySpendTime(s);
             return watConsumecount;
         }
     }
