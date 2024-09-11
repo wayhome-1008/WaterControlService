@@ -887,15 +887,11 @@ public class WaterController {
         return !today.before(cardStartDate) && !today.after(cardEndDate);
     }
 
-    /*@PostMapping("/OffLines")
+    @PostMapping("/OffLines")
     public OffLinesVo offLines(@RequestHeader("Device-ID") String deviceId, @RequestBody OffLinesDto offLinesDto) {
-        startTime = new Date();
         WatDevice watDevice = watDeviceService.getWatDevice(deviceId);
         if (ObjectUtils.isEmpty(watDevice)) {
             return createOffLinesResult(0, "设备不存在", null);
-        }
-        if (ObjectUtils.isEmpty(offLinesDto.getCardNo())) {
-            return createOffLinesResult(0, "卡号不能为空", null);
         }
         long cardNo = NumberUtils.toLong(offLinesDto.getCardNo());
         CardData cardData = cardDataService.getCardByCardNo(cardNo);
@@ -920,115 +916,186 @@ public class WaterController {
         if (ObjectUtils.isEmpty(grantsEmployeeBags)) {
             return createOffLinesResult(0, "补助钱包不存在", null);
         }
-        // 扣费金额
-        BigDecimal amount = NumberUtils.createBigDecimal(offLinesDto.getMoney());
-
+        // 允许卡类中有此类卡那么就查询出此类卡的费率信息
+        WatCardrate watCardrate = watCardRateService.getByCardTypeId(cardData.getCardTypeID());
+        // 根据deviceId查询设备基础参数信息
+        WatDeviceparameter watDeviceparameter = watDeviceParameterService.getByDeviceId(watDevice.getDeviceID());
+        // 根据deviceId查询消费统计信息
+        WatConsumecount watConsumecount = watConsumeCountService.getWatConsumeCountByDeviceId(watDevice.getDeviceID());
         ConsumTransactionsDto consumTransactionsDto = new ConsumTransactionsDto();
         consumTransactionsDto.setOrder(offLinesDto.getOrder());
         consumTransactionsDto.setMode(0);
-        //先补助后现金
+        consumTransactionsDto.setChannel(3);
+        // 扣费金额
+        BigDecimal amount = NumberUtils.createBigDecimal(offLinesDto.getMoney());
+        String order = offLinesDto.getOrder();
+        // 先补助后现金
         if (watDevice.getPriorityType() == 1) {
             BigDecimal bagMoney = Optional.of(employeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
             BigDecimal grantsBagsBagMoney = Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
             BigDecimal totalMoney = bagMoney.add(grantsBagsBagMoney);
-            if (grantsBagsBagMoney.compareTo(amount) >= 0) {
-                Date currentTime = new Date();
-                long elapsedTimeMillis = currentTime.getTime() - startTime.getTime();
-                // 转换为秒
-                long elapsedTimeSeconds = elapsedTimeMillis / 1000;
-                grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
-                return createOffLinesResult(1, "补助消费", offLinesDto.getOrder());
-            } else {
-                if (totalMoney.compareTo(amount) >= 0) {
-                    //先补助后现金->补助不够->查看补助+现金足够
-                    //补助钱包
-                    Date currentTime = new Date();
-                    long elapsedTimeMillis = currentTime.getTime() - startTime.getTime();
-                    // 转换为秒
-                    long elapsedTimeSeconds = elapsedTimeMillis / 1000;
-                    if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) != 0) {
-                        //先补助后现金
-                        grantsFirstCashAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
+            // 计算消费时间，单位为秒
+            Long s = (long) (amount.doubleValue() / watCardrate.getCardRate().doubleValue());
+            // 计算阶梯费率后的实际金额
+            amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+            // 当天第一次消费
+            if (ObjectUtils.isEmpty(watConsumecount)) {
+                if (grantsBagsBagMoney.compareTo(amount) >= 0) {
+                    // 补助消费
+                    grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "补助消费", order);
+                } else if (totalMoney.compareTo(amount) >= 0) {
+                    if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
+                        // 先补助后现金
+                        grantsFirstCashAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     } else {
-                        //当补助为0 实际上还是纯现金支付
-                        cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
+                        // 现金支付
+                        cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return createOffLinesResult(1, "补助及现金消费", offLinesDto.getOrder());
-                } else {
-                    return createOffLinesResult(0, "补助及现金不足", null);
+                    return createOffLinesResult(1, "补助及现金消费", order);
+                }
+            }
+            // 不是当天第一次消费
+            if (ObjectUtils.isNotEmpty(watConsumecount)) {
+                if (grantsBagsBagMoney.compareTo(amount) >= 0) {
+                    // 补助支付
+                    grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "补助消费", order);
+                } else if (totalMoney.compareTo(amount) >= 0) {
+                    if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
+                        // 先补助后现金
+                        grantsFirstCashAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    } else {
+                        // 现金支付
+                        cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    }
+                    return createOffLinesResult(1, "补助及现金消费", order);
                 }
             }
         }
-        //先现金后补助
+        // 先现金后补助
         else if (watDevice.getPriorityType() == 2) {
-            //先现金后补助->现金足够
-            if (Optional.of(employeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO).compareTo(amount) >= 0) {
-                Date currentTime = new Date();
-                long elapsedTimeMillis = currentTime.getTime() - startTime.getTime();
-                // 转换为秒
-                long elapsedTimeSeconds = elapsedTimeMillis / 1000;
-                cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
-                return createOffLinesResult(1, "现金消费", offLinesDto.getOrder());
-            } else {
-                //先现金后补助->现金不足情况
-                //现金+补助
-                BigDecimal bagMoney = Optional.of(employeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
-                BigDecimal grantsBagsBagMoney = Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
-                BigDecimal totalMoney = bagMoney.add(grantsBagsBagMoney);
-                //先现金后补助->现金不足情况->是否现金+补助足够
-                if (totalMoney.compareTo(amount) >= 0) {
-                    Date currentTime = new Date();
-                    long elapsedTimeMillis = currentTime.getTime() - startTime.getTime();
-                    // 转换为秒
-                    long elapsedTimeSeconds = elapsedTimeMillis / 1000;
-                    if (bagMoney.compareTo(BigDecimal.ZERO) != 0) {
-                        //判断现金不为0->先现金后补助方法
-                        cashFirstGrantsAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
+            BigDecimal bagMoney = Optional.of(employeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
+            BigDecimal grantsBagsBagMoney = Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
+            BigDecimal totalMoney = bagMoney.add(grantsBagsBagMoney);
+            // 计算消费时间，单位为秒
+            Long s = (long) (amount.doubleValue() / watCardrate.getCardRate().doubleValue());
+            // 计算阶梯费率后的实际金额
+            amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+            // 当天第一次消费
+            if (ObjectUtils.isEmpty(watConsumecount)) {
+                if (bagMoney.compareTo(amount) >= 0) {
+                    // 现金支付
+                    cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "现金消费", order);
+                } else if (totalMoney.compareTo(amount) >= 0) {
+                    if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
+                        // 先现金后补助
+                        cashFirstGrantsAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     } else {
-                        //现金为0  说明实际上还是仅补助消费
-                        grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
+                        // 补助支付
+                        grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return createOffLinesResult(1, "补助及现金消费", offLinesDto.getOrder());
-                } else {
-                    return createOffLinesResult(0, "补助及现金不足", null);
+                    return createOffLinesResult(1, "补助及现金消费", order);
+                }
+            }
+            // 不是当天第一次消费
+            if (ObjectUtils.isNotEmpty(watConsumecount)) {
+                // 现金金额大于或等于当前最大消费金额
+                if (bagMoney.compareTo(amount) >= 0) {
+                    // 现金支付
+                    cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "现金消费", order);
+                }
+                // 总金额大于或等于当前最大消费金额
+                else if (totalMoney.compareTo(amount) >= 0) {
+                    if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
+                        // 先现金后补助
+                        cashFirstGrantsAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    } else {
+                        // 补助支付
+                        grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    }
+                    return createOffLinesResult(1, "补助及现金消费", order);
                 }
             }
         }
         // 仅补助
         else if (watDevice.getPriorityType() == 3) {
-            if (Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO).compareTo(amount) >= 0) {
-                Date currentTime = new Date();
-                long elapsedTimeMillis = currentTime.getTime() - startTime.getTime();
-                // 转换为秒
-                long elapsedTimeSeconds = elapsedTimeMillis / 1000;
-                grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
-                return createOffLinesResult(1, "补助消费", offLinesDto.getOrder());
-            } else {
-                return createOffLinesResult(0, "补助及现金不足", null);
+            BigDecimal grantsBagsBagMoney = Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
+            // 计算消费时间，单位为秒
+            Long s = (long) (amount.doubleValue() / watCardrate.getCardRate().doubleValue());
+            amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+            // 当天第一次消费
+            if (ObjectUtils.isEmpty(watConsumecount)) {
+                if (grantsBagsBagMoney.compareTo(amount) >= 0) {
+                    // 补助支付
+                    grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "补助消费", order);
+                } else if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
+                    // 补助支付
+                    grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "补助消费", order);
+                }
+            }
+            // 非当天第一次消费
+            if (ObjectUtils.isNotEmpty(watConsumecount)) {
+                if (grantsBagsBagMoney.compareTo(amount) >= 0) {
+                    // 补助支付
+                    grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "补助消费", order);
+                } else if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
+                    // 补助支付
+                    grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "补助消费", order);
+                }
             }
         }
         // 仅现金
         else if (watDevice.getPriorityType() == 4) {
-            if (Optional.of(employeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO).compareTo(amount) >= 0) {
-                Date currentTime = new Date();
-                long elapsedTimeMillis = currentTime.getTime() - startTime.getTime();
-                // 转换为秒
-                long elapsedTimeSeconds = elapsedTimeMillis / 1000;
-                //仅现金消费
-                cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, elapsedTimeSeconds);
-                return createOffLinesResult(1, "现金消费", offLinesDto.getOrder());
-            } else {
-                return createOffLinesResult(0, "现金不足", null);
+            BigDecimal bagMoney = Optional.of(employeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
+            // 计算消费时间，单位为秒
+            Long s = (long) (amount.doubleValue() / watCardrate.getCardRate().doubleValue());
+            amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+            // 当天第一次消费
+            if (ObjectUtils.isEmpty(watConsumecount)) {
+                if (bagMoney.compareTo(amount) >= 0) {
+                    // 现金支付
+                    cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "现金消费", order);
+                }
+                // 卡里余额不足以消费到下一个阶段时
+                else if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
+                    // 现金支付
+                    cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "现金消费", order);
+                }
+            }
+            // 不是当天第一次消费
+            if (ObjectUtils.isNotEmpty(watConsumecount)) {
+                if (bagMoney.compareTo(amount) >= 0) {
+                    // 现金支付
+                    cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "现金消费", order);
+                }
+                // 卡里余额不足以消费到下一个阶段时
+                else if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
+                    // 现金支付
+                    cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "现金消费", order);
+                }
             }
         }
-        return createOffLinesResult(0, "水控机消费模式配置错误", null);
-    }*/
+        return createOffLinesResult(0, "水控机消费模式配置错误", order);
+    }
 
     private OffLinesVo createOffLinesResult(int status, String msg, String order) {
         OffLinesVo offLinesVo = new OffLinesVo();
         offLinesVo.setStatus(status);
         offLinesVo.setMsg(msg);
-        offLinesVo.setOrder(order);
+        if (status == 1) {
+            offLinesVo.setOrder(order);
+        }
         return offLinesVo;
     }
 
