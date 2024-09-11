@@ -202,8 +202,28 @@ public class WaterController {
                         BigDecimal result = min.divide(BigDecimal.valueOf(2), RoundingMode.HALF_UP);
                         consumTransactionsVo.setMoney(result.toString());
                         consumTransactionsVo.setSubsidy(result.toString());
+                        if (watDeviceparameter.getDeviceConModeID() == 1) {
+                            sum = add.divide(watCardrate.getCardRate().multiply(levelRates[3]), RoundingMode.HALF_UP);
+                            min = watDeviceparameter.getPreAmount().min(sum);
+                            result = min.divide(BigDecimal.valueOf(2), RoundingMode.HALF_UP);
+                            consumTransactionsVo.setMoney(result.toString());
+                            consumTransactionsVo.setSubsidy(result.toString());
+                        }
                     }
                 }
+            }
+            BigDecimal count = new BigDecimal(consumTransactionsVo.getMoney()).add(new BigDecimal(consumTransactionsVo.getSubsidy()));
+            BigDecimal preAmount = watDeviceparameter.getPreAmount();
+            if (watDeviceparameter.getDeviceConModeID() == 1) {
+                String result;
+                if (preAmount.compareTo(count) >= 0) {
+                    result = (count.divide(BigDecimal.valueOf(2), RoundingMode.HALF_UP)).toString();
+                } else {
+                    result = (preAmount.divide(BigDecimal.valueOf(2), RoundingMode.HALF_UP)).toString();
+                }
+                consumTransactionsVo.setMoney(result);
+                consumTransactionsVo.setSubsidy(result);
+                consumTransactionsVo.setAmount(result);
             }
         }
         // 当交易模式为刷卡扣费时
@@ -242,7 +262,23 @@ public class WaterController {
         // 时间/流量
         consumTransactionsVo.setTimeFlow(1);
         // 如果控制模式为常出就为0 如果为预扣就为预扣费金额
-        consumTransactionsVo.setAmount(watDeviceparameter.getDeviceConModeID() == 0 ? "0" : String.valueOf(watDeviceparameter.getPreAmount()));
+        if (consumTransactionsDto.getMode() == 1) {
+            if (watDeviceparameter.getDeviceConModeID() == 0) {
+                consumTransactionsVo.setAmount("0");
+            } else {
+                BigDecimal preAmount = watDeviceparameter.getPreAmount();
+                BigDecimal count = new BigDecimal(consumTransactionsVo.getMoney()).add(new BigDecimal(consumTransactionsVo.getSubsidy()));
+                BigDecimal result = preAmount.compareTo(count) >= 0 ? count : preAmount;
+                consumTransactionsVo.setAmount(String.valueOf(result));
+            }
+        } else {
+            if (ObjectUtils.isEmpty(watConsumecount)) {
+                consumTransactionsVo.setAmount(String.valueOf(consumTransactionsDto.getAmount()));
+            } else {
+                BigDecimal result = getBigDecimal(consumTransactionsDto, watConsumecount, watDeviceparameter);
+                consumTransactionsVo.setAmount(String.valueOf(result));
+            }
+        }
 
         // 先补助后现金
         if (watDevice.getPriorityType() == 1) {
@@ -380,7 +416,7 @@ public class WaterController {
                 }
             }
             // 不是当天第一次消费
-            else {
+            if (ObjectUtils.isNotEmpty(watConsumecount)) {
                 money = getBigDecimal(watConsumecount, watDeviceparameter, s);
                 // 现金金额大于或等于当前最大消费金额
                 if (bagMoney.compareTo(money) >= 0) {
@@ -456,7 +492,7 @@ public class WaterController {
                 }
             }
             // 非当天第一次消费
-            else {
+            if (ObjectUtils.isNotEmpty(watConsumecount)) {
                 money = getBigDecimal(watConsumecount, watDeviceparameter, s);
                 if (grantsBagsBagMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
@@ -508,7 +544,7 @@ public class WaterController {
                 }
             }
             // 不是当天第一次消费
-            else {
+            if (ObjectUtils.isNotEmpty(watConsumecount)) {
                 money = getBigDecimal(watConsumecount, watDeviceparameter, s);
                 if (bagMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
@@ -532,6 +568,40 @@ public class WaterController {
             }
         }
         return constructionResult(0, "水控机消费模式配置错误", cardData.getCardSerNo(), consumTransactionsVo);
+    }
+
+    private static BigDecimal getBigDecimal(ConsumTransactionsDto consumTransactionsDto, WatConsumecount watConsumecount, WatDeviceparameter watDeviceparameter) {
+        // 获取当天消费总时间
+        Long dailySpendTime = watConsumecount.getDailySpendTime();
+        // 获取阶段限制值
+        BigDecimal firstLevelLimit = new BigDecimal(watDeviceparameter.getFirstLevelLimit());
+        BigDecimal secondLevelLimit = new BigDecimal(watDeviceparameter.getSecondLevelLimit());
+        BigDecimal thirdLevelLimit = new BigDecimal(watDeviceparameter.getThirdLevelLimit());
+        BigDecimal fourthLevelLimit = new BigDecimal(watDeviceparameter.getFourthLevelLimit());
+        // 获取阶段比率
+        BigDecimal firstLevelRate = new BigDecimal(watDeviceparameter.getFirstLevelRate());
+        BigDecimal secondLevelRate = new BigDecimal(watDeviceparameter.getSecondLevelRate());
+        BigDecimal thirdLevelRate = new BigDecimal(watDeviceparameter.getThirdLevelRate());
+        BigDecimal fourthLevelRate = new BigDecimal(watDeviceparameter.getFourthLevelRate());
+        // 设置阶段金额最大值
+        BigDecimal result = new BigDecimal(consumTransactionsDto.getAmount());
+        // 第一阶段
+        if (dailySpendTime < firstLevelLimit.longValue()) {
+            result = result.multiply(firstLevelRate);
+            // 第二阶段
+        } else if (dailySpendTime < secondLevelLimit.longValue()) {
+            result = result.multiply(secondLevelRate);
+            // 第三阶段
+        } else if (dailySpendTime < thirdLevelLimit.longValue()) {
+            result = result.multiply(thirdLevelRate);
+            // 第四阶段
+        } else if (dailySpendTime < fourthLevelLimit.longValue()) {
+            result = result.multiply(fourthLevelRate);
+            // 超过第四阶段
+        } else {
+            result = result.multiply(fourthLevelRate);
+        }
+        return result;
     }
 
     private static BigDecimal getBigDecimal(WatConsumecount watConsumecount, WatDeviceparameter watDeviceparameter, Long s) {
