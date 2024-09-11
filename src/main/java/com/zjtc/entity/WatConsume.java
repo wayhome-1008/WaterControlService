@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -77,6 +78,12 @@ public class WatConsume implements Serializable {
      */
     @TableField("Amount")
     private BigDecimal amount;
+
+    /**
+     * 消费后钱包剩余金额
+     */
+    @TableField("ConsumeBalance")
+    private BigDecimal consumeBalance;
 
     /**
      * 水流通道(1：通道一  2：通道二 3：双控)

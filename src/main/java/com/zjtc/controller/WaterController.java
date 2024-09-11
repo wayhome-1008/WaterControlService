@@ -743,8 +743,8 @@ public class WaterController {
         grantsEmployeeBags.setBagConsumeTimes(grantsEmployeeBags.getBagConsumeTimes() + 1);
         employeeBagsService.updateById(grantsEmployeeBags);
         // 新增消费记录
-        watConsumeService.save(createConsume(watDevice, employeeBags, bagMoney, consumTransactionsDto, cardData));
-        watConsumeService.save(createConsume(watDevice, grantsEmployeeBags, amount.subtract(bagMoney), consumTransactionsDto, cardData));
+        watConsumeService.save(createConsume(watDevice, employeeBags, bagMoney, employeeBags.getBagMoney(), consumTransactionsDto, cardData));
+        watConsumeService.save(createConsume(watDevice, grantsEmployeeBags, amount.subtract(bagMoney), grantsEmployeeBags.getBagMoney(), consumTransactionsDto, cardData));
         // 新增或更新日消费记录 只加一次
         watLastConsumeService.saveOrUpdate(createOrUpdateLastConsume(amount, cardData));
         // 新增或更新消费统计记录
@@ -762,7 +762,7 @@ public class WaterController {
         employeeBags.setBagConsumeTimes(Optional.of(employeeBags).map(EmployeeBags::getBagConsumeTimes).orElse(0) + 1);
         employeeBagsService.updateById(employeeBags);
         // 新增消费记录
-        watConsumeService.save(createConsume(watDevice, employeeBags, amount, consumTransactionsDto, cardData));
+        watConsumeService.save(createConsume(watDevice, employeeBags, amount, employeeBags.getBagMoney(), consumTransactionsDto, cardData));
         // 新增或更新日消费记录
         watLastConsumeService.saveOrUpdate(createOrUpdateLastConsume(amount, cardData));
         // 新增或更新消费统计记录
@@ -790,8 +790,8 @@ public class WaterController {
         employeeBags.setBagMoney(bagMoney.add(grantsBagsBagMoney).subtract(amount));
         employeeBagsService.updateById(employeeBags);
         // 新增消费记录
-        watConsumeService.save(createConsume(watDevice, grantsEmployeeBags, grantsBagsBagMoney, consumTransactionsDto, cardData));
-        watConsumeService.save(createConsume(watDevice, employeeBags, amount.subtract(grantsBagsBagMoney), consumTransactionsDto, cardData));
+        watConsumeService.save(createConsume(watDevice, grantsEmployeeBags, grantsBagsBagMoney, grantsEmployeeBags.getBagMoney(), consumTransactionsDto, cardData));
+        watConsumeService.save(createConsume(watDevice, employeeBags, amount.subtract(grantsBagsBagMoney), employeeBags.getBagMoney(), consumTransactionsDto, cardData));
         // 新增或更新日消费记录 只加一次
         watLastConsumeService.saveOrUpdate(createOrUpdateLastConsume(amount, cardData));
         // 新增或更新消费统计记录
@@ -809,7 +809,7 @@ public class WaterController {
         grantsEmployeeBags.setBagConsumeTimes(Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagConsumeTimes).orElse(0) + 1);
         employeeBagsService.updateById(grantsEmployeeBags);
         // 新增消费记录
-        watConsumeService.save(createConsume(watDevice, grantsEmployeeBags, amount, consumTransactionsDto, cardData));
+        watConsumeService.save(createConsume(watDevice, grantsEmployeeBags, amount, grantsEmployeeBags.getBagMoney(), consumTransactionsDto, cardData));
         // 新增或更新日消费记录
         watLastConsumeService.saveOrUpdate(createOrUpdateLastConsume(amount, cardData));
         // 新增或更新消费统计记录
@@ -850,16 +850,17 @@ public class WaterController {
     }
 
     // 新增消费记录
-    private WatConsume createConsume(WatDevice watDevice, EmployeeBags grantsEmployeeBags, BigDecimal amount, ConsumTransactionsDto consumTransactionsDto, CardData cardData) {
+    private WatConsume createConsume(WatDevice watDevice, EmployeeBags employeeBags, BigDecimal amount, BigDecimal consumeBalance, ConsumTransactionsDto consumTransactionsDto, CardData cardData) {
         WatConsume watConsume = new WatConsume();
         watConsume.setOrderNo(consumTransactionsDto.getOrder());
         watConsume.setEmployeeID(cardData.getEmployeeID());
         watConsume.setCardID(cardData.getCardID());
         watConsume.setCardSerNo(String.valueOf(cardData.getCardSerNo()));
         watConsume.setDeviceID(watDevice.getDeviceID());
-        watConsume.setBagsID(grantsEmployeeBags.getEmployeeBagsID());
+        watConsume.setBagsID(employeeBags.getEmployeeBagsID());
         watConsume.setMode(consumTransactionsDto.getMode());
         watConsume.setAmount(amount);
+        watConsume.setConsumeBalance(consumeBalance);
         if (ObjectUtils.isNotEmpty(consumTransactionsDto.getChannel())) {
             watConsume.setChannel(consumTransactionsDto.getChannel());
         } else {
