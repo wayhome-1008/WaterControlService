@@ -222,7 +222,6 @@ public class WaterController {
                 }
                 consumTransactionsVo.setMoney(result);
                 consumTransactionsVo.setSubsidy(result);
-                consumTransactionsVo.setAmount(result);
             }
         }
         // 当交易模式为刷卡扣费时
@@ -260,20 +259,29 @@ public class WaterController {
         }
         // 时间/流量
         consumTransactionsVo.setTimeFlow(1);
-        // 如果控制模式为常出就为0 如果为预扣就为预扣费金额
+        // 查询
         if (consumTransactionsDto.getMode() == 1) {
+            // 如果控制模式为常出就为0 如果为预扣就为预扣费金额
             if (watDeviceparameter.getDeviceConModeID() == 0) {
                 consumTransactionsVo.setAmount("0");
             } else {
+                // 获取预扣费金额
                 BigDecimal preAmount = watDeviceparameter.getPreAmount();
+                // 获取两个钱包总额(计算阶段费率)
                 BigDecimal count = new BigDecimal(consumTransactionsVo.getMoney()).add(new BigDecimal(consumTransactionsVo.getSubsidy()));
+                // 如果预扣费金额大于钱包总额那么就按钱包总额来扣 否则正常扣预扣费金额
                 BigDecimal result = preAmount.compareTo(count) >= 0 ? count : preAmount;
                 consumTransactionsVo.setAmount(String.valueOf(result));
             }
-        } else {
+        }
+        // 消费
+        else {
+            // 如果今天没有消费过 那么就按回来的消费金额乘以一阶段费率来计算出实际消费金额
             if (ObjectUtils.isEmpty(watConsumecount)) {
-                consumTransactionsVo.setAmount(String.valueOf(consumTransactionsDto.getAmount()));
-            } else {
+                consumTransactionsVo.setAmount(String.valueOf(new BigDecimal(consumTransactionsDto.getAmount()).multiply(new BigDecimal(watDeviceparameter.getFirstLevelRate()))));
+            }
+            // 消费过后就按照消费金额和阶段费率计算出实际的消费金额
+            else {
                 BigDecimal result = getBigDecimal(consumTransactionsDto, watConsumecount, watDeviceparameter);
                 consumTransactionsVo.setAmount(String.valueOf(result));
             }
