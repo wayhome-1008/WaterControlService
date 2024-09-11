@@ -203,7 +203,6 @@ public class WaterController {
                         consumTransactionsVo.setMoney(result.toString());
                         consumTransactionsVo.setSubsidy(result.toString());
                         if (watDeviceparameter.getDeviceConModeID() == 1) {
-                            sum = add.divide(watCardrate.getCardRate().multiply(levelRates[3]), RoundingMode.HALF_UP);
                             min = watDeviceparameter.getPreAmount().min(sum);
                             result = min.divide(BigDecimal.valueOf(2), RoundingMode.HALF_UP);
                             consumTransactionsVo.setMoney(result.toString());
