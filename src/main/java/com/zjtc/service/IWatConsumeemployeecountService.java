@@ -19,6 +19,8 @@ import java.math.BigDecimal;
  */
 public interface IWatConsumeemployeecountService extends IService<WatConsumeemployeecount> {
 
-    WatConsumeemployeecount createOrUpdateConsumeEmployeeCount(WatDevice watDevice, EmployeeBags employeeBags, EmployeeBags grantsEmployeeBags, BigDecimal bagsMoney, BigDecimal grantsBagsMoney, CardData cardData);
+    WatConsumeemployeecount createOrUpdateConsumeEmployeeCount(WatDevice watDevice, EmployeeBags employeeBags, EmployeeBags grantsEmployeeBags, BigDecimal bagsMoney, BigDecimal grantsBagsMoney, CardData cardData, Long s);
+
+    WatConsumeemployeecount getConsumeEmployeeCountByEmployeeId(Integer employeeId);
 
 }

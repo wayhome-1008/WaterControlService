@@ -36,7 +36,7 @@ public class WatConsumeemployeecountServiceImpl extends ServiceImpl<WatConsumeem
     private final WatConsumeemployeecountMapper watConsumeemployeecountMapper;
 
     @Override
-    public WatConsumeemployeecount createOrUpdateConsumeEmployeeCount(WatDevice watDevice, EmployeeBags employeeBags, EmployeeBags grantsEmployeeBags, BigDecimal bagsMoney, BigDecimal grantsBagsMoney, CardData cardData) {
+    public WatConsumeemployeecount createOrUpdateConsumeEmployeeCount(WatDevice watDevice, EmployeeBags employeeBags, EmployeeBags grantsEmployeeBags, BigDecimal bagsMoney, BigDecimal grantsBagsMoney, CardData cardData, Long s) {
         // 获取当前日期
         LocalDate today = LocalDate.now();
         // 格式化为字符串
@@ -48,6 +48,7 @@ public class WatConsumeemployeecountServiceImpl extends ServiceImpl<WatConsumeem
         WatConsumeemployeecount watConsumeemployeecount = watConsumeemployeecountMapper.selectOne(queryWrapper);
         boolean isMixed = BigDecimal.ZERO.compareTo(bagsMoney) != 0 && BigDecimal.ZERO.compareTo(grantsBagsMoney) != 0;
         if (ObjectUtils.isNotEmpty(watConsumeemployeecount)) {
+            watConsumeemployeecount.setDailySpendTime(Optional.of(watConsumeemployeecount).map(WatConsumeemployeecount::getDailySpendTime).orElse(0L) + s);
             if (isMixed) {
                 //混合支付
                 watConsumeemployeecount.setCashTimes(Optional.of(watConsumeemployeecount).map(WatConsumeemployeecount::getCashTimes).orElse(0) + 1);
@@ -74,12 +75,13 @@ public class WatConsumeemployeecountServiceImpl extends ServiceImpl<WatConsumeem
                 }
             }
             return watConsumeemployeecount;
-        }else {
+        } else {
             //新增
             WatConsumeemployeecount add = new WatConsumeemployeecount();
             add.setEmployeeID(employeeBags.getEmployeeID());
             add.setConsumeDate(convertToDate(today));
             add.setDailyTimes(1);
+            add.setDailySpendTime(s);
             if (isMixed) {
                 //混合支付
                 add.setDailyMoney(bagsMoney.add(grantsBagsMoney));
@@ -103,6 +105,19 @@ public class WatConsumeemployeecountServiceImpl extends ServiceImpl<WatConsumeem
             }
             return add;
         }
+    }
+
+    @Override
+    public WatConsumeemployeecount getConsumeEmployeeCountByEmployeeId(Integer employeeId) {
+        // 获取当前日期
+        LocalDate today = LocalDate.now();
+        // 格式化为字符串
+        String todayString = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        // 构造 QueryWrapper
+        QueryWrapper<WatConsumeemployeecount> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("ConsumeDate", todayString);
+        queryWrapper.eq("EmployeeID", employeeId);
+        return watConsumeemployeecountMapper.selectOne(queryWrapper);
     }
 
     public static Date convertToDate(LocalDate localDate) {

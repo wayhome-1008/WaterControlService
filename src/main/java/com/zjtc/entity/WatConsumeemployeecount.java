@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -76,4 +77,11 @@ public class WatConsumeemployeecount implements Serializable {
      */
     @TableField("SubsidyTimes")
     private Integer subsidyTimes;
+
+    /**
+     * 今日消费时间(秒)
+     */
+    @TableField("DailySpendTime")
+    private Long dailySpendTime;
+
 }
