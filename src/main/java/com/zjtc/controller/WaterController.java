@@ -127,7 +127,7 @@ public class WaterController {
                 // 每日最大消费量大于0进入判断
                 if (Integer.parseInt(watDeviceparameter.getDailyConsumeTimes()) > 0) {
                     if (Long.parseLong(watDeviceparameter.getDailyConsumeTimes()) < watConsumeemployeecount.getDailySpendTime()) {
-                        return constructionResult(0, "超过每日最大消费量" + watDeviceparameter.getConsumeGap() + "分钟", cardNo, consumTransactionsVo);
+                        return constructionResult(0, "超过每日最大消费量", cardNo, consumTransactionsVo);
                     }
                 }
             }
