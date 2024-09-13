@@ -146,8 +146,6 @@ public class WaterController {
             BigDecimal setMoney = Optional.of(employeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
             // 补助余额
             BigDecimal setSubsidy = Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
-            // 钱包总金额
-            BigDecimal add = setMoney.add(setSubsidy);
             // 当卡费率大于0时
             if (watCardrate.getCardRate().compareTo(BigDecimal.ZERO) > 0) {
                 // 获取阶段限制值和阶段比率
@@ -197,7 +195,7 @@ public class WaterController {
                     }
                     // 如果消费超过第四阶段限制
                     if (watConsumecount.getDailySpendTime() >= levelLimits[3].longValue()) {
-                        BigDecimal sum = add.divide(watCardrate.getCardRate().multiply(levelRates[3]), RoundingMode.HALF_UP);
+                        BigDecimal sum = setMoney.divide(levelRates[3], RoundingMode.HALF_UP).add(setSubsidy.divide(levelRates[3], RoundingMode.HALF_UP));
                         BigDecimal min = multiply.min(sum);
                         BigDecimal result = min.divide(BigDecimal.valueOf(2), RoundingMode.HALF_UP);
                         consumTransactionsVo.setMoney(result.toString());
@@ -296,37 +294,37 @@ public class WaterController {
             Long s = (long) (amount.doubleValue() / watCardrate.getCardRate().doubleValue());
             // 设置阶段金额最大值
             BigDecimal money = new BigDecimal(watDeviceparameter.getFirstLevelLimit())
-                    .multiply(new BigDecimal(watDeviceparameter.getFirstLevelRate()));
+                    .multiply(new BigDecimal(watDeviceparameter.getFirstLevelRate())).multiply(watCardrate.getCardRate());
             // 当天第一次消费
             if (ObjectUtils.isEmpty(watConsumecount)) {
                 if (grantsBagsBagMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
                         // 计算阶梯费率后的实际金额
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         // 补助消费
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
                     return constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo);
                 } else if (totalMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
                             // 先补助后现金
                             grantsFirstCashAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         } else {
-                            // 现金支付
+                            // 补助为0 纯现金支付
                             cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
                     return constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo);
                 } else if (totalMoney.compareTo(BigDecimal.ZERO) > 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
                             // 先补助后现金
                             grantsFirstCashAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         } else {
-                            // 现金支付
+                            // 补助为0 纯现金支付
                             cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
@@ -337,34 +335,34 @@ public class WaterController {
             }
             // 不是当天第一次消费
             if (ObjectUtils.isNotEmpty(watConsumecount)) {
-                money = getBigDecimal(watConsumecount, watDeviceparameter, s);
+                money = getBigDecimal(watConsumecount, watDeviceparameter, watCardrate, s);
                 if (grantsBagsBagMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         // 补助支付
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
                     return constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo);
                 } else if (totalMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
                             // 先补助后现金
                             grantsFirstCashAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         } else {
-                            // 现金支付
+                            // 补助为0 纯现金支付
                             cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
                     return constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo);
                 } else if (totalMoney.compareTo(BigDecimal.ZERO) > 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
                             // 先补助后现金
                             grantsFirstCashAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         } else {
-                            // 现金支付
+                            // 补助为0 纯现金支付
                             cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
@@ -383,37 +381,37 @@ public class WaterController {
             Long s = (long) (amount.doubleValue() / watCardrate.getCardRate().doubleValue());
             // 设置阶段金额最大值
             BigDecimal money = new BigDecimal(watDeviceparameter.getFirstLevelLimit())
-                    .multiply(new BigDecimal(watDeviceparameter.getFirstLevelRate()));
+                    .multiply(new BigDecimal(watDeviceparameter.getFirstLevelRate())).multiply(watCardrate.getCardRate());
             // 当天第一次消费
             if (ObjectUtils.isEmpty(watConsumecount)) {
                 if (bagMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
                         // 计算阶梯费率后的实际金额
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         // 现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
                     return constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo);
                 } else if (totalMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
                             // 先现金后补助
                             cashFirstGrantsAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         } else {
-                            // 补助支付
+                            // 现金为0 纯补助支付
                             grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
                     return constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo);
                 } else if (totalMoney.compareTo(BigDecimal.ZERO) > 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
                             // 先现金后补助
                             cashFirstGrantsAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         } else {
-                            // 补助支付
+                            // 现金为0 纯补助支付
                             grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
@@ -424,11 +422,11 @@ public class WaterController {
             }
             // 不是当天第一次消费
             if (ObjectUtils.isNotEmpty(watConsumecount)) {
-                money = getBigDecimal(watConsumecount, watDeviceparameter, s);
+                money = getBigDecimal(watConsumecount, watDeviceparameter, watCardrate, s);
                 // 现金金额大于或等于当前最大消费金额
                 if (bagMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         // 现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
@@ -438,12 +436,12 @@ public class WaterController {
                 else if (totalMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
                         if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
-                            amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                            amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                             // 先现金后补助
                             cashFirstGrantsAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         } else {
-                            amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
-                            // 补助支付
+                            amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
+                            // 现金为0 纯补助支付
                             grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
@@ -453,12 +451,12 @@ public class WaterController {
                 else if (totalMoney.compareTo(BigDecimal.ZERO) > 0) {
                     if (consumTransactionsDto.getMode() == 0) {
                         if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
-                            amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                            amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                             // 先现金后补助
                             cashFirstGrantsAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         } else {
-                            amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
-                            // 补助支付
+                            amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
+                            // 现金为0 纯补助支付
                             grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
@@ -477,19 +475,19 @@ public class WaterController {
             Long s = (long) (amount.doubleValue() / watCardrate.getCardRate().doubleValue());
             // 设置阶段金额最大值
             BigDecimal money = new BigDecimal(watDeviceparameter.getFirstLevelLimit())
-                    .multiply(new BigDecimal(watDeviceparameter.getFirstLevelRate()));
+                    .multiply(new BigDecimal(watDeviceparameter.getFirstLevelRate())).multiply(watCardrate.getCardRate());
             // 当天第一次消费
             if (ObjectUtils.isEmpty(watConsumecount)) {
                 if (grantsBagsBagMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         // 补助支付
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
                     return constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo);
                 } else if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         // 补助支付
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
@@ -500,17 +498,17 @@ public class WaterController {
             }
             // 非当天第一次消费
             if (ObjectUtils.isNotEmpty(watConsumecount)) {
-                money = getBigDecimal(watConsumecount, watDeviceparameter, s);
+                money = getBigDecimal(watConsumecount, watDeviceparameter, watCardrate, s);
                 if (grantsBagsBagMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         // 补助支付
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
                     return constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo);
                 } else if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         // 补助支付
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
@@ -527,12 +525,12 @@ public class WaterController {
             Long s = (long) (amount.doubleValue() / watCardrate.getCardRate().doubleValue());
             // 设置阶段金额最大值
             BigDecimal money = new BigDecimal(watDeviceparameter.getFirstLevelLimit())
-                    .multiply(new BigDecimal(watDeviceparameter.getFirstLevelRate()));
+                    .multiply(new BigDecimal(watDeviceparameter.getFirstLevelRate())).multiply(watCardrate.getCardRate());
             // 当天第一次消费
             if (ObjectUtils.isEmpty(watConsumecount)) {
                 if (bagMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         // 现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
@@ -541,7 +539,7 @@ public class WaterController {
                 // 卡里余额不足以消费到下一个阶段时
                 else if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         // 现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
@@ -552,10 +550,10 @@ public class WaterController {
             }
             // 不是当天第一次消费
             if (ObjectUtils.isNotEmpty(watConsumecount)) {
-                money = getBigDecimal(watConsumecount, watDeviceparameter, s);
+                money = getBigDecimal(watConsumecount, watDeviceparameter, watCardrate, s);
                 if (bagMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         // 现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
@@ -564,7 +562,7 @@ public class WaterController {
                 // 卡里余额不足以消费到下一个阶段时
                 else if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
                     if (consumTransactionsDto.getMode() == 0) {
-                        amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+                        amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
                         // 现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
@@ -611,7 +609,7 @@ public class WaterController {
         return result;
     }
 
-    private static BigDecimal getBigDecimal(WatConsumecount watConsumecount, WatDeviceparameter watDeviceparameter, Long s) {
+    private static BigDecimal getBigDecimal(WatConsumecount watConsumecount, WatDeviceparameter watDeviceparameter, WatCardrate watCardrate, Long s) {
         // 获取当天消费总时间
         Long dailySpendTime = watConsumecount.getDailySpendTime();
         // 获取阶段限制值
@@ -628,24 +626,24 @@ public class WaterController {
         BigDecimal money;
         // 第一阶段
         if (dailySpendTime < firstLevelLimit.longValue()) {
-            money = (new BigDecimal(s)).multiply(firstLevelRate);
+            money = (new BigDecimal(s)).multiply(firstLevelRate).multiply(watCardrate.getCardRate());
             // 第二阶段
         } else if (dailySpendTime < secondLevelLimit.longValue()) {
-            money = (new BigDecimal(s)).multiply(secondLevelRate);
+            money = (new BigDecimal(s)).multiply(secondLevelRate).multiply(watCardrate.getCardRate());
             // 第三阶段
         } else if (dailySpendTime < thirdLevelLimit.longValue()) {
-            money = (new BigDecimal(s)).multiply(thirdLevelRate);
+            money = (new BigDecimal(s)).multiply(thirdLevelRate).multiply(watCardrate.getCardRate());
             // 第四阶段
         } else if (dailySpendTime < fourthLevelLimit.longValue()) {
-            money = (new BigDecimal(s)).multiply(fourthLevelRate);
+            money = (new BigDecimal(s)).multiply(fourthLevelRate).multiply(watCardrate.getCardRate());
             // 超过第四阶段
         } else {
-            money = BigDecimal.valueOf(s).multiply(fourthLevelRate);
+            money = BigDecimal.valueOf(s).multiply(fourthLevelRate).multiply(watCardrate.getCardRate());
         }
         return money;
     }
 
-    private static BigDecimal getAmount(WatDeviceparameter watDeviceparameter, WatConsumecount watConsumecount, BigDecimal amount, Long s) {
+    private static BigDecimal getAmount(WatDeviceparameter watDeviceparameter, WatConsumecount watConsumecount, BigDecimal amount, WatCardrate watCardrate, Long s) {
         // 获取阶段限制值
         BigDecimal firstLevelLimit = new BigDecimal(watDeviceparameter.getFirstLevelLimit());
         BigDecimal secondLevelLimit = new BigDecimal(watDeviceparameter.getSecondLevelLimit());
@@ -665,7 +663,7 @@ public class WaterController {
             // 时间不超过一阶段
             if (firstLevelLimit.longValue() >= s) {
                 // 金额乘以一阶段比率
-                amount = amount.multiply(firstLevelRate);
+                amount = BigDecimal.valueOf(s).multiply(firstLevelRate).multiply(watCardrate.getCardRate());
             }
         }
         // 数据库中有数据 不是当天第一次刷卡
@@ -676,23 +674,23 @@ public class WaterController {
             // 时间不超过一阶段
             if (time <= firstLevelLimit.longValue()) {
                 // 金额乘以一阶段比率
-                amount = amount.multiply(firstLevelRate);
+                amount = BigDecimal.valueOf(s).multiply(firstLevelRate).multiply(watCardrate.getCardRate());
                 // 时间在一阶段和二阶段之间
             } else if (time <= secondLevelLimit.longValue()) {
                 // 消费时间乘以二阶段比率
-                amount = BigDecimal.valueOf(s).multiply(secondLevelRate);
+                amount = BigDecimal.valueOf(s).multiply(secondLevelRate).multiply(watCardrate.getCardRate());
                 // 时间在二阶段和三阶段之间
             } else if (time <= thirdLevelLimit.longValue()) {
                 // 消费时间乘以三阶段比率
-                amount = BigDecimal.valueOf(s).multiply(thirdLevelRate);
+                amount = BigDecimal.valueOf(s).multiply(thirdLevelRate).multiply(watCardrate.getCardRate());
                 // 时间在三阶段和四阶段之间
             } else if (time <= fourthLevelLimit.longValue()) {
                 // 消费时间乘以四阶段比率
-                amount = BigDecimal.valueOf(s).multiply(fourthLevelRate);
+                amount = BigDecimal.valueOf(s).multiply(fourthLevelRate).multiply(watCardrate.getCardRate());
             }
             // 时间超过四阶段
             else {
-                amount = BigDecimal.valueOf(s).multiply(fourthLevelRate);
+                amount = BigDecimal.valueOf(s).multiply(fourthLevelRate).multiply(watCardrate.getCardRate());
             }
         }
         return amount;
@@ -945,7 +943,7 @@ public class WaterController {
             // 计算消费时间，单位为秒
             Long s = (long) (amount.doubleValue() / watCardrate.getCardRate().doubleValue());
             // 计算阶梯费率后的实际金额
-            amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+            amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
             // 当天第一次消费
             if (ObjectUtils.isEmpty(watConsumecount)) {
                 if (grantsBagsBagMoney.compareTo(amount) >= 0) {
@@ -957,7 +955,7 @@ public class WaterController {
                         // 先补助后现金
                         grantsFirstCashAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     } else {
-                        // 现金支付
+                        // 补助为0 纯现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
                     return createOffLinesResult(1, "补助及现金消费", order);
@@ -974,7 +972,7 @@ public class WaterController {
                         // 先补助后现金
                         grantsFirstCashAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     } else {
-                        // 现金支付
+                        // 补助为0 纯现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
                     return createOffLinesResult(1, "补助及现金消费", order);
@@ -989,7 +987,7 @@ public class WaterController {
             // 计算消费时间，单位为秒
             Long s = (long) (amount.doubleValue() / watCardrate.getCardRate().doubleValue());
             // 计算阶梯费率后的实际金额
-            amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+            amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
             // 当天第一次消费
             if (ObjectUtils.isEmpty(watConsumecount)) {
                 if (bagMoney.compareTo(amount) >= 0) {
@@ -1001,7 +999,7 @@ public class WaterController {
                         // 先现金后补助
                         cashFirstGrantsAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     } else {
-                        // 补助支付
+                        // 现金为0 纯补助支付
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
                     return createOffLinesResult(1, "补助及现金消费", order);
@@ -1021,7 +1019,7 @@ public class WaterController {
                         // 先现金后补助
                         cashFirstGrantsAfter(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     } else {
-                        // 补助支付
+                        // 现金为0 纯补助支付
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
                     return createOffLinesResult(1, "补助及现金消费", order);
@@ -1033,7 +1031,7 @@ public class WaterController {
             BigDecimal grantsBagsBagMoney = Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
             // 计算消费时间，单位为秒
             Long s = (long) (amount.doubleValue() / watCardrate.getCardRate().doubleValue());
-            amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+            amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
             // 当天第一次消费
             if (ObjectUtils.isEmpty(watConsumecount)) {
                 if (grantsBagsBagMoney.compareTo(amount) >= 0) {
@@ -1064,7 +1062,7 @@ public class WaterController {
             BigDecimal bagMoney = Optional.of(employeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
             // 计算消费时间，单位为秒
             Long s = (long) (amount.doubleValue() / watCardrate.getCardRate().doubleValue());
-            amount = getAmount(watDeviceparameter, watConsumecount, amount, s);
+            amount = getAmount(watDeviceparameter, watConsumecount, amount, watCardrate, s);
             // 当天第一次消费
             if (ObjectUtils.isEmpty(watConsumecount)) {
                 if (bagMoney.compareTo(amount) >= 0) {

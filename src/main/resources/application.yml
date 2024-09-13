@@ -1,5 +1,10 @@
 server:
   port: 8081
+  servlet:
+    encoding:
+      charset: GB2312
+      force: true
+      enabled: true
 spring:
     datasource:
       username: root
