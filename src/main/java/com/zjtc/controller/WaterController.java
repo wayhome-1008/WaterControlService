@@ -15,8 +15,10 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -72,7 +74,7 @@ public class WaterController {
             return constructionResult(0, "允许卡类中没有此类卡", cardNo, consumTransactionsVo);
         }
         //卡状态
-        if (cardData.getCardStatusID() != 1) {
+        if (cardData.getCardStatusID() == 2 || cardData.getCardStatusID() == 4) {
             return constructionResult(0, "卡状态异常", cardNo, consumTransactionsVo);
         }
         //卡有效期 根据cardStartDate和cardEndDate判断当天是否再这之间
@@ -180,7 +182,7 @@ public class WaterController {
                     BigDecimal result = min.divide(BigDecimal.valueOf(2), RoundingMode.DOWN);
                     if (multiply.compareTo(BigDecimal.ZERO) == 0) {
                         min = leveAmount.min(sum);
-                        result = min.divide(BigDecimal.valueOf(2), RoundingMode.DOWN);
+                        result = min.divide(BigDecimal.valueOf(2), RoundingMode.HALF_UP);
                     }
                     // 现金余额
                     consumTransactionsVo.setMoney(result.toString());
@@ -198,7 +200,7 @@ public class WaterController {
                             BigDecimal result = min.divide(BigDecimal.valueOf(2), RoundingMode.DOWN);
                             if (multiply.compareTo(BigDecimal.ZERO) == 0) {
                                 min = leveAmount.min(sum);
-                                result = min.divide(BigDecimal.valueOf(2), RoundingMode.DOWN);
+                                result = min.divide(BigDecimal.valueOf(2), RoundingMode.HALF_UP);
                             }
                             consumTransactionsVo.setMoney(result.toString());
                             consumTransactionsVo.setSubsidy(result.toString());
@@ -916,7 +918,7 @@ public class WaterController {
             return createOffLinesResult(0, "卡号不存在", null);
         }
         //卡状态
-        if (cardData.getCardStatusID() != 1) {
+        if (cardData.getCardStatusID() == 2 || cardData.getCardStatusID() == 4) {
             return createOffLinesResult(0, "卡状态异常", null);
         }
         //卡有效期 根据cardStartDate和cardEndDate判断当天是否再这之间
