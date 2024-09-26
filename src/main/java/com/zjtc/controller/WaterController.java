@@ -152,7 +152,7 @@ public class WaterController {
             // 补助余额
             BigDecimal setSubsidy = Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
             BigDecimal add = setMoney.add(setSubsidy);
-            if (add.compareTo(BigDecimal.ZERO) < 0) {
+            if (add.compareTo(BigDecimal.ZERO) < 0 && (cardData.getCardCredit().add(setMoney)).compareTo(BigDecimal.ZERO) <= 0) {
                 return ResponseEntity.ok(constructionResult(0, "余额不足", cardNo, consumTransactionsVo));
             }
             // 当卡费率大于0时
@@ -350,6 +350,11 @@ public class WaterController {
                     }
                     return ResponseEntity.ok(constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else {
+                    if (cardData.getCardCredit().compareTo(BigDecimal.ZERO) > 0 && (cardData.getCardCredit().add(bagMoney)).compareTo(BigDecimal.ZERO) > 0) {
+                        amount = getAmount(watDeviceparameter, watConsumeemployeecount, amount, watCardrate, s);
+                        cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                        return ResponseEntity.ok(constructionResult(1, "信用卡额度消费", cardData.getCardSerNo(), consumTransactionsVo));
+                    }
                     return ResponseEntity.ok(constructionResult(0, "补助及现金不足", cardData.getCardSerNo(), consumTransactionsVo));
                 }
             }
@@ -388,6 +393,11 @@ public class WaterController {
                     }
                     return ResponseEntity.ok(constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else {
+                    if (cardData.getCardCredit().compareTo(BigDecimal.ZERO) > 0 && (cardData.getCardCredit().add(bagMoney)).compareTo(BigDecimal.ZERO) > 0) {
+                        amount = getAmount(watDeviceparameter, watConsumeemployeecount, amount, watCardrate, s);
+                        cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                        return ResponseEntity.ok(constructionResult(1, "信用卡额度消费", cardData.getCardSerNo(), consumTransactionsVo));
+                    }
                     return ResponseEntity.ok(constructionResult(0, "补助及现金不足", cardData.getCardSerNo(), consumTransactionsVo));
                 }
             }
@@ -437,6 +447,11 @@ public class WaterController {
                     }
                     return ResponseEntity.ok(constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else {
+                    if (cardData.getCardCredit().compareTo(BigDecimal.ZERO) > 0 && (cardData.getCardCredit().add(bagMoney)).compareTo(BigDecimal.ZERO) > 0) {
+                        amount = getAmount(watDeviceparameter, watConsumeemployeecount, amount, watCardrate, s);
+                        cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                        return ResponseEntity.ok(constructionResult(1, "信用卡额度消费", cardData.getCardSerNo(), consumTransactionsVo));
+                    }
                     return ResponseEntity.ok(constructionResult(0, "补助及现金不足", cardData.getCardSerNo(), consumTransactionsVo));
                 }
             }
@@ -484,6 +499,11 @@ public class WaterController {
                 }
                 // 补助及现金不足
                 else {
+                    if (cardData.getCardCredit().compareTo(BigDecimal.ZERO) > 0 && (cardData.getCardCredit().add(bagMoney)).compareTo(BigDecimal.ZERO) > 0) {
+                        amount = getAmount(watDeviceparameter, watConsumeemployeecount, amount, watCardrate, s);
+                        cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                        return ResponseEntity.ok(constructionResult(1, "信用卡额度消费", cardData.getCardSerNo(), consumTransactionsVo));
+                    }
                     return ResponseEntity.ok(constructionResult(0, "补助及现金不足", cardData.getCardSerNo(), consumTransactionsVo));
                 }
             }
@@ -565,6 +585,11 @@ public class WaterController {
                     }
                     return ResponseEntity.ok(constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else {
+                    if (cardData.getCardCredit().compareTo(BigDecimal.ZERO) > 0 && (cardData.getCardCredit().add(bagMoney)).compareTo(BigDecimal.ZERO) > 0) {
+                        amount = getAmount(watDeviceparameter, watConsumeemployeecount, amount, watCardrate, s);
+                        cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                        return ResponseEntity.ok(constructionResult(1, "信用卡额度消费", cardData.getCardSerNo(), consumTransactionsVo));
+                    }
                     return ResponseEntity.ok(constructionResult(0, "现金不足", cardData.getCardSerNo(), consumTransactionsVo));
                 }
             }
@@ -588,6 +613,11 @@ public class WaterController {
                     }
                     return ResponseEntity.ok(constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else {
+                    if (cardData.getCardCredit().compareTo(BigDecimal.ZERO) > 0 && (cardData.getCardCredit().add(bagMoney)).compareTo(BigDecimal.ZERO) > 0) {
+                        amount = getAmount(watDeviceparameter, watConsumeemployeecount, amount, watCardrate, s);
+                        cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                        return ResponseEntity.ok(constructionResult(1, "信用卡额度消费", cardData.getCardSerNo(), consumTransactionsVo));
+                    }
                     return ResponseEntity.ok(constructionResult(0, "现金不足", cardData.getCardSerNo(), consumTransactionsVo));
                 }
             }
