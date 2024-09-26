@@ -125,4 +125,10 @@ public class WatDevice implements Serializable {
      */
     @TableField("DeviceTypeID")
     private Integer deviceTypeID;
+
+    /**
+     * 脱机消费金额
+     */
+    @TableField("OffAmount")
+    private Double offAmount;
 }

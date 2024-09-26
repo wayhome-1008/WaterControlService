@@ -4,9 +4,11 @@ import com.zjtc.dto.ServerTimeDto;
 import com.zjtc.entity.PosDevicejob;
 import com.zjtc.entity.WatDevice;
 import com.zjtc.entity.WatDevicejobRecord;
+import com.zjtc.entity.WatDeviceparameter;
 import com.zjtc.service.IPosDevicejobService;
 import com.zjtc.service.IWatDeviceService;
 import com.zjtc.service.IWatDevicejobRecordService;
+import com.zjtc.service.IWatDeviceparameterService;
 import com.zjtc.vo.ServerTimeVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +36,7 @@ public class HeartBeatController {
     private final IWatDeviceService watDeviceService;
     private final IPosDevicejobService posDevicejobService;
     private final IWatDevicejobRecordService watDevicejobRecordService;
+    private final IWatDeviceparameterService watDeviceParameterService;
 
     //2.1.获取服务器时间接口
     @PostMapping("/ServerTime")
@@ -76,7 +79,14 @@ public class HeartBeatController {
         serverTimeVo.setWhiteListUpDate(0);
         serverTimeVo.setWhiteListPage(1);
         serverTimeVo.setDoubleControl(1);
-        serverTimeVo.setOffAmount(200000D);
+        WatDeviceparameter watDeviceparameter = watDeviceParameterService.getByDeviceId(watDevice.getDeviceID());
+        if (ObjectUtils.isNotEmpty(watDeviceparameter)) {
+            if (watDeviceparameter.getDeviceOffLine() == 0) {
+                serverTimeVo.setOffAmount(0D);
+            } else if (watDeviceparameter.getDeviceOffLine() == 1) {
+                serverTimeVo.setOffAmount(watDevice.getOffAmount());
+            }
+        }
         serverTimeVo.setICid(1);
         List<WatDevicejobRecord> watDevicejobRecordList = watDevicejobRecordService.getByDeviceId(deviceId);
         if (ObjectUtils.isNotEmpty(watDevicejobRecordList)) {
