@@ -26,4 +26,6 @@ public class ServerTimeVo {
     //1：同时控制两个通道开关 0：单控
     @JsonProperty("DoubleControl")
     private Integer doubleControl;
+    @JsonProperty("ICID")
+    private Integer iCid;
 }

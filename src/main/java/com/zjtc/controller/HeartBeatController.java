@@ -76,6 +76,8 @@ public class HeartBeatController {
         serverTimeVo.setWhiteListUpDate(0);
         serverTimeVo.setWhiteListPage(1);
         serverTimeVo.setDoubleControl(1);
+        serverTimeVo.setOffAmount(200000D);
+        serverTimeVo.setICid(1);
         List<WatDevicejobRecord> watDevicejobRecordList = watDevicejobRecordService.getByDeviceId(deviceId);
         if (ObjectUtils.isNotEmpty(watDevicejobRecordList)) {
             serverTimeVo.setWhiteListUpDate(1);

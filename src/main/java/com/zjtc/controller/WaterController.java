@@ -1,5 +1,7 @@
 package com.zjtc.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.zjtc.dto.ConsumTransactionsDto;
 import com.zjtc.dto.OffLinesDto;
 import com.zjtc.dto.WhiteListDto;
@@ -12,11 +14,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.Charset;
 import java.util.*;
 
 /**
@@ -43,7 +47,7 @@ public class WaterController {
     private final IWatConsumeemployeecountService watConsumeEmployeeCountService;
 
     @PostMapping("/ConsumTransactions")
-    public ConsumTransactionsVo consumTransactions(@RequestHeader("Device-ID") String deviceId, @RequestBody ConsumTransactionsDto consumTransactionsDto) {
+    public ResponseEntity<byte[]> consumTransactions(@RequestHeader("Device-ID") String deviceId, @RequestBody ConsumTransactionsDto consumTransactionsDto) {
         ConsumTransactionsVo consumTransactionsVo = new ConsumTransactionsVo();
         // 根据deviceId查询设备信息
         WatDevice watDevice = watDeviceService.getWatDevice(deviceId);
@@ -52,13 +56,13 @@ public class WaterController {
         // 根据卡号查询卡信息
         CardData cardData = cardDataService.getCardByCardNo(cardNo);
         if (ObjectUtils.isEmpty(watDevice)) {
-            return constructionResult(0, "设备不存在", cardNo, consumTransactionsVo);
+            return ResponseEntity.ok(constructionResult(0, "设备不存在", cardNo, consumTransactionsVo));
         }
         if (ObjectUtils.isEmpty(consumTransactionsDto.getCardNo())) {
-            return constructionResult(0, "卡号不能为空", cardNo, consumTransactionsVo);
+            return ResponseEntity.ok(constructionResult(0, "卡号不能为空", cardNo, consumTransactionsVo));
         }
         if (ObjectUtils.isEmpty(cardData)) {
-            return constructionResult(0, "卡号不存在", cardNo, consumTransactionsVo);
+            return ResponseEntity.ok(constructionResult(0, "卡号不存在", cardNo, consumTransactionsVo));
         }
         // 根据deviceId获取允许卡类的一个集合
         List<WatCardrate> list = watCardRateService.getListByDeviceId(watDevice.getDeviceID());
@@ -69,25 +73,25 @@ public class WaterController {
         }
         // 判断卡片类型集合中是否包含了刷的卡的类型
         if (!cardTypeIdList.contains(cardData.getCardTypeID())) {
-            return constructionResult(0, "允许卡类中没有此类卡", cardNo, consumTransactionsVo);
+            return ResponseEntity.ok(constructionResult(0, "允许卡类中没有此类卡", cardNo, consumTransactionsVo));
         }
         //卡状态
         if (cardData.getCardStatusID() == 2 || cardData.getCardStatusID() == 4) {
-            return constructionResult(0, "卡状态异常", cardNo, consumTransactionsVo);
+            return ResponseEntity.ok(constructionResult(0, "卡状态异常", cardNo, consumTransactionsVo));
         }
         //卡有效期 根据cardStartDate和cardEndDate判断当天是否再这之间
         boolean validCardDate = isValidCardDate(cardData.getCardStartDate(), cardData.getCardEndDate());
         if (!validCardDate) {
-            return constructionResult(0, "卡有效期异常", cardNo, consumTransactionsVo);
+            return ResponseEntity.ok(constructionResult(0, "卡有效期异常", cardNo, consumTransactionsVo));
         }
         //BagId1:现金钱包 BagId2:补助钱包
         EmployeeBags employeeBags = employeeBagsService.getBags(cardData.getEmployeeID(), 1);
         if (ObjectUtils.isEmpty(employeeBags)) {
-            return constructionResult(0, "现金钱包不存在", cardNo, consumTransactionsVo);
+            return ResponseEntity.ok(constructionResult(0, "现金钱包不存在", cardNo, consumTransactionsVo));
         }
         EmployeeBags grantsEmployeeBags = employeeBagsService.getBags(cardData.getEmployeeID(), 2);
         if (ObjectUtils.isEmpty(grantsEmployeeBags)) {
-            return constructionResult(0, "补助钱包不存在", cardNo, consumTransactionsVo);
+            return ResponseEntity.ok(constructionResult(0, "补助钱包不存在", cardNo, consumTransactionsVo));
         }
         // 根据deviceId查询设备基础参数信息
         WatDeviceparameter watDeviceparameter = watDeviceParameterService.getByDeviceId(watDevice.getDeviceID());
@@ -112,14 +116,14 @@ public class WaterController {
                     // 上次消费时间要在得到的这个时间之前才能正常使用否则返回错误
                     // 判断最后消费时间是否在得到的时间之后，如果在后面那么就返回错误
                     if (watLastconsume.getLastConsumeDate().after(thresholdTime)) {
-                        return constructionResult(0, "两次消费间隔小于" + watDeviceparameter.getConsumeGap() + "分钟", cardNo, consumTransactionsVo);
+                        return ResponseEntity.ok(constructionResult(0, "两次消费间隔小于" + watDeviceparameter.getConsumeGap() + "分钟", cardNo, consumTransactionsVo));
                     }
                 }
                 // 如果每日最大消费次数大于0进入判断
                 if (watDeviceparameter.getDailyMaxConsume() > 0) {
                     // 如果设置的每日最大消费次数小于等于表中的每日消费次数那么返回错误
                     if (watDeviceparameter.getDailyMaxConsume() <= watLastconsume.getDailyTimes()) {
-                        return constructionResult(0, "超过每日最大消费次数", cardNo, consumTransactionsVo);
+                        return ResponseEntity.ok(constructionResult(0, "超过每日最大消费次数", cardNo, consumTransactionsVo));
                     }
                 }
             }
@@ -127,7 +131,7 @@ public class WaterController {
                 // 每日最大消费量大于0进入判断
                 if (Integer.parseInt(watDeviceparameter.getDailyConsumeTimes()) > 0) {
                     if (Long.parseLong(watDeviceparameter.getDailyConsumeTimes()) < watConsumeemployeecount.getDailySpendTime()) {
-                        return constructionResult(0, "超过每日最大消费量", cardNo, consumTransactionsVo);
+                        return ResponseEntity.ok(constructionResult(0, "超过每日最大消费量", cardNo, consumTransactionsVo));
                     }
                 }
             }
@@ -138,6 +142,7 @@ public class WaterController {
         consumTransactionsVo.setConMode(watDeviceparameter.getDeviceConModeID());
         // 计费模式
         consumTransactionsVo.setChargeMode(watDeviceparameter.getDevicePayModeID());
+        consumTransactionsVo.setThermalControl(0);
         // 允许卡类中有此类卡那么就查询出此类卡的费率信息
         WatCardrate watCardrate = watCardRateService.getByCardTypeId(cardData.getCardTypeID());
         // 当交易模式为查询余额时
@@ -148,7 +153,7 @@ public class WaterController {
             BigDecimal setSubsidy = Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
             BigDecimal add = setMoney.add(setSubsidy);
             if (add.compareTo(BigDecimal.ZERO) < 0) {
-                return constructionResult(0, "余额不足", cardNo, consumTransactionsVo);
+                return ResponseEntity.ok(constructionResult(0, "余额不足", cardNo, consumTransactionsVo));
             }
             // 当卡费率大于0时
             if (watCardrate.getCardRate().compareTo(BigDecimal.ZERO) > 0) {
@@ -319,7 +324,7 @@ public class WaterController {
                         // 补助消费
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else if (totalMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
                         amount = getAmount(watDeviceparameter, watConsumeemployeecount, amount, watCardrate, s);
@@ -331,7 +336,7 @@ public class WaterController {
                             cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
-                    return constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else if (totalMoney.compareTo(BigDecimal.ZERO) > 0) {
                     if (consumTransactionsDto.getMode() == 0) {
                         amount = getAmount(watDeviceparameter, watConsumeemployeecount, amount, watCardrate, s);
@@ -343,9 +348,9 @@ public class WaterController {
                             cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
-                    return constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else {
-                    return constructionResult(0, "补助及现金不足", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(0, "补助及现金不足", cardData.getCardSerNo(), consumTransactionsVo));
                 }
             }
             // 不是当天第一次消费
@@ -357,7 +362,7 @@ public class WaterController {
                         // 补助支付
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else if (totalMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
                         amount = getAmount(watDeviceparameter, watConsumeemployeecount, amount, watCardrate, s);
@@ -369,7 +374,7 @@ public class WaterController {
                             cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
-                    return constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else if (totalMoney.compareTo(BigDecimal.ZERO) > 0) {
                     if (consumTransactionsDto.getMode() == 0) {
                         amount = getAmount(watDeviceparameter, watConsumeemployeecount, amount, watCardrate, s);
@@ -381,9 +386,9 @@ public class WaterController {
                             cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
-                    return constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else {
-                    return constructionResult(0, "补助及现金不足", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(0, "补助及现金不足", cardData.getCardSerNo(), consumTransactionsVo));
                 }
             }
         }
@@ -406,7 +411,7 @@ public class WaterController {
                         // 现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else if (totalMoney.compareTo(money) >= 0) {
                     if (consumTransactionsDto.getMode() == 0) {
                         amount = getAmount(watDeviceparameter, watConsumeemployeecount, amount, watCardrate, s);
@@ -418,7 +423,7 @@ public class WaterController {
                             grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
-                    return constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else if (totalMoney.compareTo(BigDecimal.ZERO) > 0) {
                     if (consumTransactionsDto.getMode() == 0) {
                         amount = getAmount(watDeviceparameter, watConsumeemployeecount, amount, watCardrate, s);
@@ -430,9 +435,9 @@ public class WaterController {
                             grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
-                    return constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else {
-                    return constructionResult(0, "补助及现金不足", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(0, "补助及现金不足", cardData.getCardSerNo(), consumTransactionsVo));
                 }
             }
             // 不是当天第一次消费
@@ -445,7 +450,7 @@ public class WaterController {
                         // 现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 }
                 // 总金额大于或等于当前最大消费金额
                 else if (totalMoney.compareTo(money) >= 0) {
@@ -460,7 +465,7 @@ public class WaterController {
                             grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
-                    return constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 }
                 // 总金额不足以消费到下一个阶段时
                 else if (totalMoney.compareTo(BigDecimal.ZERO) > 0) {
@@ -475,11 +480,11 @@ public class WaterController {
                             grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                         }
                     }
-                    return constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "补助及现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 }
                 // 补助及现金不足
                 else {
-                    return constructionResult(0, "补助及现金不足", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(0, "补助及现金不足", cardData.getCardSerNo(), consumTransactionsVo));
                 }
             }
         }
@@ -499,16 +504,16 @@ public class WaterController {
                         // 补助支付
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
                     if (consumTransactionsDto.getMode() == 0) {
                         amount = getAmount(watDeviceparameter, watConsumeemployeecount, amount, watCardrate, s);
                         // 补助支付
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else {
-                    return constructionResult(0, "补助不足", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(0, "补助不足", cardData.getCardSerNo(), consumTransactionsVo));
                 }
             }
             // 非当天第一次消费
@@ -520,16 +525,16 @@ public class WaterController {
                         // 补助支付
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
                     if (consumTransactionsDto.getMode() == 0) {
                         amount = getAmount(watDeviceparameter, watConsumeemployeecount, amount, watCardrate, s);
                         // 补助支付
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "补助消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else {
-                    return constructionResult(0, "补助不足", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(0, "补助不足", cardData.getCardSerNo(), consumTransactionsVo));
                 }
             }
         }
@@ -549,7 +554,7 @@ public class WaterController {
                         // 现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 }
                 // 卡里余额不足以消费到下一个阶段时
                 else if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
@@ -558,9 +563,9 @@ public class WaterController {
                         // 现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else {
-                    return constructionResult(0, "现金不足", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(0, "现金不足", cardData.getCardSerNo(), consumTransactionsVo));
                 }
             }
             // 不是当天第一次消费
@@ -572,7 +577,7 @@ public class WaterController {
                         // 现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 }
                 // 卡里余额不足以消费到下一个阶段时
                 else if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
@@ -581,13 +586,13 @@ public class WaterController {
                         // 现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(1, "现金消费", cardData.getCardSerNo(), consumTransactionsVo));
                 } else {
-                    return constructionResult(0, "现金不足", cardData.getCardSerNo(), consumTransactionsVo);
+                    return ResponseEntity.ok(constructionResult(0, "现金不足", cardData.getCardSerNo(), consumTransactionsVo));
                 }
             }
         }
-        return constructionResult(0, "水控机消费模式配置错误", cardData.getCardSerNo(), consumTransactionsVo);
+        return ResponseEntity.ok(constructionResult(0, "水控机消费模式配置错误", cardData.getCardSerNo(), consumTransactionsVo));
     }
 
     private static BigDecimal getBigDecimal(ConsumTransactionsDto consumTransactionsDto, WatConsumeemployeecount watConsumeemployeecount, WatDeviceparameter watDeviceparameter) {
@@ -669,12 +674,35 @@ public class WaterController {
         BigDecimal secondLevelRate = new BigDecimal(watDeviceparameter.getSecondLevelRate());
         BigDecimal thirdLevelRate = new BigDecimal(watDeviceparameter.getThirdLevelRate());
         BigDecimal fourthLevelRate = new BigDecimal(watDeviceparameter.getFourthLevelRate());
+        BigDecimal sTime = new BigDecimal(s);
         // 数据库中无数据 当天第一次刷卡
         if (ObjectUtils.isEmpty(watConsumeemployeecount)) {
             // 时间不超过一阶段
-            if (firstLevelLimit.longValue() >= s) {
+            if (s <= firstLevelLimit.longValue()) {
                 // 金额乘以一阶段比率
                 amount = BigDecimal.valueOf(s).multiply(firstLevelRate).multiply(watCardrate.getCardRate());
+            } else if (s <= secondLevelLimit.longValue()) {
+                amount = ((sTime.subtract(firstLevelLimit)).multiply(secondLevelRate)
+                        .add(firstLevelLimit.multiply(firstLevelRate)))
+                        .multiply(watCardrate.getCardRate());
+            } else if (s <= thirdLevelLimit.longValue()) {
+                amount = ((sTime.subtract(secondLevelLimit)).multiply(thirdLevelRate)
+                        .add(secondLevelLimit.multiply(secondLevelRate))
+                        .add(firstLevelLimit.multiply(firstLevelRate)))
+                        .multiply(watCardrate.getCardRate());
+            } else if (s <= fourthLevelLimit.longValue()) {
+                amount = ((sTime.subtract(thirdLevelLimit)).multiply(fourthLevelRate)
+                        .add(thirdLevelLimit.multiply(thirdLevelRate))
+                        .add(secondLevelLimit.multiply(secondLevelRate))
+                        .add(firstLevelLimit.multiply(firstLevelRate)))
+                        .multiply(watCardrate.getCardRate());
+            } else {
+                amount = ((sTime.subtract(fourthLevelLimit)).multiply(fourthLevelRate)
+                        .add(fourthLevelLimit.multiply(fourthLevelRate))
+                        .add(thirdLevelLimit.multiply(thirdLevelRate))
+                        .add(secondLevelLimit.multiply(secondLevelRate))
+                        .add(firstLevelLimit.multiply(firstLevelRate)))
+                        .multiply(watCardrate.getCardRate());
             }
         }
         // 数据库中有数据 不是当天第一次刷卡
@@ -707,7 +735,7 @@ public class WaterController {
         return amount;
     }
 
-    private ConsumTransactionsVo constructionResult(Integer status, String msg, Long cardNo, ConsumTransactionsVo consumTransactionsVo) {
+    private byte[] constructionResult(Integer status, String msg, Long cardNo, ConsumTransactionsVo consumTransactionsVo) {
         consumTransactionsVo.setStatus(status);
         //返回失败结果
         if (status == 0) {
@@ -736,7 +764,9 @@ public class WaterController {
         if (cardNo == 0) {
             consumTransactionsVo.setCardNo("0");
         }
-        return consumTransactionsVo;
+        Charset encoder = Charset.forName("GB2312");
+        String jsonString = JSON.toJSONString(consumTransactionsVo);
+        return jsonString.getBytes(encoder);
     }
 
     // 先现金后补助
@@ -906,6 +936,12 @@ public class WaterController {
 
     @PostMapping("/OffLines")
     public OffLinesVo offLines(@RequestHeader("Device-ID") String deviceId, @RequestBody OffLinesDto offLinesDto) {
+        QueryWrapper<WatConsume> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("OrderNo", offLinesDto.getOrder());
+        WatConsume watConsume = watConsumeService.getOne(queryWrapper);
+        if (ObjectUtils.isNotEmpty(watConsume)) {
+            return createOffLinesResult(0, "消费序号已经存在", offLinesDto.getOrder());
+        }
         WatDevice watDevice = watDeviceService.getWatDevice(deviceId);
         if (ObjectUtils.isEmpty(watDevice)) {
             return createOffLinesResult(0, "设备不存在", null);
@@ -970,6 +1006,9 @@ public class WaterController {
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
                     return createOffLinesResult(1, "补助及现金消费", order);
+                } else {
+                    cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "现金透支消费", order);
                 }
             }
             // 不是当天第一次消费
@@ -987,6 +1026,9 @@ public class WaterController {
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
                     return createOffLinesResult(1, "补助及现金消费", order);
+                } else {
+                    cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "现金透支消费", order);
                 }
             }
         }
@@ -1014,6 +1056,9 @@ public class WaterController {
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
                     return createOffLinesResult(1, "补助及现金消费", order);
+                } else {
+                    grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "补助透支消费", order);
                 }
             }
             // 不是当天第一次消费
@@ -1034,6 +1079,9 @@ public class WaterController {
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
                     return createOffLinesResult(1, "补助及现金消费", order);
+                } else {
+                    grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "补助透支消费", order);
                 }
             }
         }
@@ -1053,6 +1101,9 @@ public class WaterController {
                     // 补助支付
                     grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     return createOffLinesResult(1, "补助消费", order);
+                } else {
+                    grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "补助透支消费", order);
                 }
             }
             // 非当天第一次消费
@@ -1065,6 +1116,9 @@ public class WaterController {
                     // 补助支付
                     grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     return createOffLinesResult(1, "补助消费", order);
+                } else {
+                    grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "补助透支消费", order);
                 }
             }
         }
@@ -1086,6 +1140,9 @@ public class WaterController {
                     // 现金支付
                     cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     return createOffLinesResult(1, "现金消费", order);
+                } else {
+                    cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "现金透支消费", order);
                 }
             }
             // 不是当天第一次消费
@@ -1100,6 +1157,9 @@ public class WaterController {
                     // 现金支付
                     cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     return createOffLinesResult(1, "现金消费", order);
+                } else {
+                    cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
+                    return createOffLinesResult(1, "现金透支消费", order);
                 }
             }
         }
