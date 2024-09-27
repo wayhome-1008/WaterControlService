@@ -92,10 +92,6 @@ public class HeartBeatController {
         if (ObjectUtils.isNotEmpty(watDevicejobRecordList)) {
             serverTimeVo.setWhiteListUpDate(1);
         }
-        if (watDevice.getDelWhite() == 1) {
-            serverTimeVo.setWhiteListUpDate(1);
-            serverTimeVo.setWhiteListPage(0);
-        }
         return serverTimeVo;
     }
 }

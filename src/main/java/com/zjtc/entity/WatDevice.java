@@ -133,10 +133,4 @@ public class WatDevice implements Serializable {
      */
     @TableField("OffAmount")
     private Double offAmount;
-
-    /**
-     * 清空白名单 1是 0否
-     */
-    @TableField("DelWhite")
-    private Integer delWhite;
 }
