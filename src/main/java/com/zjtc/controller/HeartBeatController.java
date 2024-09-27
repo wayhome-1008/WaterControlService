@@ -34,8 +34,8 @@ import java.util.List;
 public class HeartBeatController {
 
     private final IWatDeviceService watDeviceService;
-    private final IPosDevicejobService posDevicejobService;
-    private final IWatDevicejobRecordService watDevicejobRecordService;
+    private final IPosDevicejobService posDeviceJobService;
+    private final IWatDevicejobRecordService watDeviceJobRecordService;
     private final IWatDeviceparameterService watDeviceParameterService;
 
     //2.1.获取服务器时间接口
@@ -64,15 +64,15 @@ public class HeartBeatController {
         serverTimeVo.setStatus(1);
         serverTimeVo.setMsg("");
         serverTimeVo.setTime(formattedDateTime + adjustedDayOfWeek);
-        List<PosDevicejob> posDevicejobServiceList = posDevicejobService.getList();
+        List<PosDevicejob> posDevicejobServiceList = posDeviceJobService.getList();
         if (ObjectUtils.isNotEmpty(posDevicejobServiceList)) {
             //把查询到的数据遍历
             for (PosDevicejob posDevicejob : posDevicejobServiceList) {
                 //根据设备sn和设备任务id查询子表数据
-                WatDevicejobRecord watDevicejobRecord = watDevicejobRecordService.get(posDevicejob.getDeviceJobID(), deviceId);
+                WatDevicejobRecord watDevicejobRecord = watDeviceJobRecordService.get(posDevicejob.getDeviceJobID(), deviceId);
                 //如果子表没有数据那么就添加一条
                 if (ObjectUtils.isEmpty(watDevicejobRecord)) {
-                    watDevicejobRecordService.add(posDevicejob, deviceId);
+                    watDeviceJobRecordService.add(posDevicejob, deviceId);
                 }
             }
         }
@@ -88,10 +88,42 @@ public class HeartBeatController {
                 serverTimeVo.setOffAmount(watDevice.getOffAmount());
             }
         }
-        List<WatDevicejobRecord> watDevicejobRecordList = watDevicejobRecordService.getByDeviceId(deviceId);
+        List<WatDevicejobRecord> watDevicejobRecordList = watDeviceJobRecordService.getByDeviceId(deviceId);
         if (ObjectUtils.isNotEmpty(watDevicejobRecordList)) {
             serverTimeVo.setWhiteListUpDate(1);
         }
+        if (ObjectUtils.isNotEmpty(watDeviceJobRecordService.getByDeviceJobId(0))) {
+            serverTimeVo.setWhiteListUpDate(1);
+            serverTimeVo.setWhiteListPage(0);
+        }
         return serverTimeVo;
+    }
+
+    @GetMapping("/clear")
+    public String clear() {
+        WatDevicejobRecord watDevicejobRecord = new WatDevicejobRecord();
+        watDevicejobRecord.setDeviceJobRecordID(0);
+        watDevicejobRecord.setDeviceJobID(0);
+        watDevicejobRecord.setDeviceID("");
+        watDevicejobRecord.setDeviceJobTypeID(0);
+        watDevicejobRecord.setDeviceJobTypeName(null);
+        watDevicejobRecord.setDeviceJobStatus(0);
+        watDevicejobRecord.setEmployeeID(0);
+        watDevicejobRecord.setCreateTime(null);
+        boolean save = watDeviceJobRecordService.save(watDevicejobRecord);
+        if (save) {
+            return "已经下发清空白名单任务";
+        }
+        return "下发清空白名单任务失败";
+    }
+
+    @GetMapping("/stop")
+    public String stop() {
+        WatDevicejobRecord watDevicejobRecord = watDeviceJobRecordService.getByDeviceJobId(0);
+        boolean remove = watDeviceJobRecordService.removeById(watDevicejobRecord);
+        if (remove) {
+            return "已经停止清空白名单任务";
+        }
+        return "停止清空白名单任务失败";
     }
 }
