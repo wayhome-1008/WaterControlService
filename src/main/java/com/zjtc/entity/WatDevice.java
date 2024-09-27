@@ -4,14 +4,16 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
+
 import lombok.Getter;
 import lombok.Setter;
 
 /**
  * <p>
- * 
+ *
  * </p>
  *
  * @author way
@@ -131,4 +133,10 @@ public class WatDevice implements Serializable {
      */
     @TableField("OffAmount")
     private Double offAmount;
+
+    /**
+     * 清空白名单 1是 0否
+     */
+    @TableField("DelWhite")
+    private Integer delWhite;
 }

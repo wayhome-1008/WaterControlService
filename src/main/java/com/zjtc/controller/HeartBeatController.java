@@ -79,6 +79,7 @@ public class HeartBeatController {
         serverTimeVo.setWhiteListUpDate(0);
         serverTimeVo.setWhiteListPage(1);
         serverTimeVo.setDoubleControl(1);
+        serverTimeVo.setICid(1);
         WatDeviceparameter watDeviceparameter = watDeviceParameterService.getByDeviceId(watDevice.getDeviceID());
         if (ObjectUtils.isNotEmpty(watDeviceparameter)) {
             if (watDeviceparameter.getDeviceOffLine() == 0) {
@@ -87,10 +88,13 @@ public class HeartBeatController {
                 serverTimeVo.setOffAmount(watDevice.getOffAmount());
             }
         }
-        serverTimeVo.setICid(1);
         List<WatDevicejobRecord> watDevicejobRecordList = watDevicejobRecordService.getByDeviceId(deviceId);
         if (ObjectUtils.isNotEmpty(watDevicejobRecordList)) {
             serverTimeVo.setWhiteListUpDate(1);
+        }
+        if (watDevice.getDelWhite() == 1) {
+            serverTimeVo.setWhiteListUpDate(1);
+            serverTimeVo.setWhiteListPage(0);
         }
         return serverTimeVo;
     }
