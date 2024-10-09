@@ -226,7 +226,7 @@ public class WaterController {
                         BigDecimal result = min.divide(BigDecimal.valueOf(2), RoundingMode.DOWN);
                         if (multiply.compareTo(BigDecimal.ZERO) == 0) {
                             result = sum.divide(BigDecimal.valueOf(2), RoundingMode.DOWN);
-                            if (sum.compareTo(BigDecimal.ZERO) < 0) {
+                            if (sum.compareTo(BigDecimal.ZERO) <= 0) {
                                 result = cardCredit.divide(BigDecimal.valueOf(2), RoundingMode.HALF_UP);
                             }
                         }
@@ -235,7 +235,7 @@ public class WaterController {
                         if (watDeviceparameter.getDeviceConModeID() == 1) {
                             min = watDeviceparameter.getPreAmount().min(sum);
                             result = min.divide(BigDecimal.valueOf(2), RoundingMode.DOWN);
-                            if (sum.compareTo(BigDecimal.ZERO) < 0) {
+                            if (sum.compareTo(BigDecimal.ZERO) <= 0) {
                                 min = watDeviceparameter.getPreAmount().min(cardCredit);
                                 result = min.divide(BigDecimal.valueOf(2), RoundingMode.DOWN);
                             }
