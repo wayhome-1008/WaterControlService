@@ -1,5 +1,6 @@
 package com.zjtc.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.zjtc.dto.ServerTimeDto;
 import com.zjtc.entity.PosDevicejob;
 import com.zjtc.entity.WatDevice;
@@ -13,9 +14,11 @@ import com.zjtc.vo.ServerTimeVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -40,13 +43,15 @@ public class HeartBeatController {
 
     //2.1.获取服务器时间接口
     @PostMapping("/ServerTime")
-    public ServerTimeVo serverTime(@RequestHeader("Device-ID") String deviceId, @RequestBody ServerTimeDto serverTimeDto) {
+    public ResponseEntity<byte[]> serverTime(@RequestHeader("Device-ID") String deviceId, @RequestBody ServerTimeDto serverTimeDto) {
         WatDevice watDevice = watDeviceService.getWatDevice(deviceId);
         ServerTimeVo serverTimeVo = new ServerTimeVo();
+        Charset encoder = Charset.forName("GB2312");
         if (ObjectUtils.isEmpty(watDevice)) {
             serverTimeVo.setStatus(0);
-            serverTimeVo.setMsg("设备不存在或已经被禁用");
-            return serverTimeVo;
+            serverTimeVo.setMsg("设备不存在或被禁用");
+            String jsonString = JSON.toJSONString(serverTimeVo);
+            return ResponseEntity.ok(jsonString.getBytes(encoder));
         }
         // 获取当前日期时间
         Date now = new Date();
@@ -96,7 +101,8 @@ public class HeartBeatController {
             serverTimeVo.setWhiteListUpDate(1);
             serverTimeVo.setWhiteListPage(0);
         }
-        return serverTimeVo;
+        String jsonString = JSON.toJSONString(serverTimeVo);
+        return ResponseEntity.ok(jsonString.getBytes(encoder));
     }
 
     @GetMapping("/clear")

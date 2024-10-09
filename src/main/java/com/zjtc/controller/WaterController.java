@@ -56,7 +56,7 @@ public class WaterController {
         // 根据卡号查询卡信息
         CardData cardData = cardDataService.getCardByCardNo(cardNo);
         if (ObjectUtils.isEmpty(watDevice)) {
-            return ResponseEntity.ok(constructionResult(0, "设备不存在或已经被禁用", cardNo, consumTransactionsVo));
+            return ResponseEntity.ok(constructionResult(0, "设备不存在或被禁用", cardNo, consumTransactionsVo));
         }
         if (ObjectUtils.isEmpty(consumTransactionsDto.getCardNo())) {
             return ResponseEntity.ok(constructionResult(0, "卡号不能为空", cardNo, consumTransactionsVo));
@@ -993,39 +993,39 @@ public class WaterController {
     }
 
     @PostMapping("/OffLines")
-    public OffLinesVo offLines(@RequestHeader("Device-ID") String deviceId, @RequestBody OffLinesDto offLinesDto) {
+    public ResponseEntity<byte[]> offLines(@RequestHeader("Device-ID") String deviceId, @RequestBody OffLinesDto offLinesDto) {
         QueryWrapper<WatConsume> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("OrderNo", offLinesDto.getOrder());
         WatConsume watConsume = watConsumeService.getOne(queryWrapper);
         if (ObjectUtils.isNotEmpty(watConsume)) {
-            return createOffLinesResult(0, "消费序号已经存在", offLinesDto.getOrder());
+            return ResponseEntity.ok(createOffLinesResult(0, "消费序号已经存在", offLinesDto.getOrder()));
         }
         WatDevice watDevice = watDeviceService.getWatDevice(deviceId);
         if (ObjectUtils.isEmpty(watDevice)) {
-            return createOffLinesResult(0, "设备不存在或已经被禁用", null);
+            return ResponseEntity.ok(createOffLinesResult(0, "设备不存在或被禁用", null));
         }
         long cardNo = NumberUtils.toLong(offLinesDto.getCardNo());
         CardData cardData = cardDataService.getCardByCardNo(cardNo);
         if (ObjectUtils.isEmpty(cardData)) {
-            return createOffLinesResult(0, "卡号不存在", null);
+            return ResponseEntity.ok(createOffLinesResult(0, "卡号不存在", null));
         }
         //卡状态
         if (cardData.getCardStatusID() == 2 || cardData.getCardStatusID() == 4) {
-            return createOffLinesResult(0, "卡状态异常", null);
+            return ResponseEntity.ok(createOffLinesResult(0, "卡状态异常", null));
         }
         //卡有效期 根据cardStartDate和cardEndDate判断当天是否再这之间
         boolean validCardDate = isValidCardDate(cardData.getCardStartDate(), cardData.getCardEndDate());
         if (!validCardDate) {
-            return createOffLinesResult(0, "卡有效期异常", null);
+            return ResponseEntity.ok(createOffLinesResult(0, "卡有效期异常", null));
         }
         //BagId1:现金钱包 BagId2:补助钱包
         EmployeeBags employeeBags = employeeBagsService.getBags(cardData.getEmployeeID(), 1);
         if (ObjectUtils.isEmpty(employeeBags)) {
-            return createOffLinesResult(0, "现金钱包不存在", null);
+            return ResponseEntity.ok(createOffLinesResult(0, "现金钱包不存在", null));
         }
         EmployeeBags grantsEmployeeBags = employeeBagsService.getBags(cardData.getEmployeeID(), 2);
         if (ObjectUtils.isEmpty(grantsEmployeeBags)) {
-            return createOffLinesResult(0, "补助钱包不存在", null);
+            return ResponseEntity.ok(createOffLinesResult(0, "补助钱包不存在", null));
         }
         // 允许卡类中有此类卡那么就查询出此类卡的费率信息
         WatCardrate watCardrate = watCardRateService.getByCardTypeId(cardData.getCardTypeID());
@@ -1054,7 +1054,7 @@ public class WaterController {
                 if (grantsBagsBagMoney.compareTo(amount) >= 0) {
                     // 补助消费
                     grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "补助消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "补助消费", order));
                 } else if (totalMoney.compareTo(amount) >= 0) {
                     if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
                         // 先补助后现金
@@ -1063,10 +1063,10 @@ public class WaterController {
                         // 补助为0 纯现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return createOffLinesResult(1, "补助及现金消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "补助及现金消费", order));
                 } else {
                     cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "现金透支消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "现金透支消费", order));
                 }
             }
             // 不是当天第一次消费
@@ -1074,7 +1074,7 @@ public class WaterController {
                 if (grantsBagsBagMoney.compareTo(amount) >= 0) {
                     // 补助支付
                     grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "补助消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "补助消费", order));
                 } else if (totalMoney.compareTo(amount) >= 0) {
                     if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
                         // 先补助后现金
@@ -1083,10 +1083,10 @@ public class WaterController {
                         // 补助为0 纯现金支付
                         cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return createOffLinesResult(1, "补助及现金消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "补助及现金消费", order));
                 } else {
                     cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "现金透支消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "现金透支消费", order));
                 }
             }
         }
@@ -1104,7 +1104,7 @@ public class WaterController {
                 if (bagMoney.compareTo(amount) >= 0) {
                     // 现金支付
                     cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "现金消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "现金消费", order));
                 } else if (totalMoney.compareTo(amount) >= 0) {
                     if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
                         // 先现金后补助
@@ -1113,10 +1113,10 @@ public class WaterController {
                         // 现金为0 纯补助支付
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return createOffLinesResult(1, "补助及现金消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "补助及现金消费", order));
                 } else {
                     grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "补助透支消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "补助透支消费", order));
                 }
             }
             // 不是当天第一次消费
@@ -1125,7 +1125,7 @@ public class WaterController {
                 if (bagMoney.compareTo(amount) >= 0) {
                     // 现金支付
                     cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "现金消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "现金消费", order));
                 }
                 // 总金额大于或等于当前最大消费金额
                 else if (totalMoney.compareTo(amount) >= 0) {
@@ -1136,10 +1136,10 @@ public class WaterController {
                         // 现金为0 纯补助支付
                         grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
                     }
-                    return createOffLinesResult(1, "补助及现金消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "补助及现金消费", order));
                 } else {
                     grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "补助透支消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "补助透支消费", order));
                 }
             }
         }
@@ -1154,14 +1154,14 @@ public class WaterController {
                 if (grantsBagsBagMoney.compareTo(amount) >= 0) {
                     // 补助支付
                     grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "补助消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "补助消费", order));
                 } else if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
                     // 补助支付
                     grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "补助消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "补助消费", order));
                 } else {
                     grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "补助透支消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "补助透支消费", order));
                 }
             }
             // 非当天第一次消费
@@ -1169,14 +1169,14 @@ public class WaterController {
                 if (grantsBagsBagMoney.compareTo(amount) >= 0) {
                     // 补助支付
                     grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "补助消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "补助消费", order));
                 } else if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
                     // 补助支付
                     grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "补助消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "补助消费", order));
                 } else {
                     grantsPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "补助透支消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "补助透支消费", order));
                 }
             }
         }
@@ -1191,16 +1191,16 @@ public class WaterController {
                 if (bagMoney.compareTo(amount) >= 0) {
                     // 现金支付
                     cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "现金消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "现金消费", order));
                 }
                 // 卡里余额不足以消费到下一个阶段时
                 else if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
                     // 现金支付
                     cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "现金消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "现金消费", order));
                 } else {
                     cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "现金透支消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "现金透支消费", order));
                 }
             }
             // 不是当天第一次消费
@@ -1208,30 +1208,32 @@ public class WaterController {
                 if (bagMoney.compareTo(amount) >= 0) {
                     // 现金支付
                     cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "现金消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "现金消费", order));
                 }
                 // 卡里余额不足以消费到下一个阶段时
                 else if (bagMoney.compareTo(BigDecimal.ZERO) > 0) {
                     // 现金支付
                     cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "现金消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "现金消费", order));
                 } else {
                     cashPaymentOnly(watDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData, s);
-                    return createOffLinesResult(1, "现金透支消费", order);
+                    return ResponseEntity.ok(createOffLinesResult(1, "现金透支消费", order));
                 }
             }
         }
-        return createOffLinesResult(0, "水控机消费模式配置错误", order);
+        return ResponseEntity.ok(createOffLinesResult(0, "水控机消费模式配置错误", order));
     }
 
-    private OffLinesVo createOffLinesResult(int status, String msg, String order) {
+    private byte[] createOffLinesResult(int status, String msg, String order) {
         OffLinesVo offLinesVo = new OffLinesVo();
         offLinesVo.setStatus(status);
         offLinesVo.setMsg(msg);
         if (status == 1) {
             offLinesVo.setOrder(order);
         }
-        return offLinesVo;
+        Charset encoder = Charset.forName("GB2312");
+        String jsonString = JSON.toJSONString(offLinesVo);
+        return jsonString.getBytes(encoder);
     }
 
     @PostMapping("/WhiteList")
