@@ -56,7 +56,7 @@ public class WaterController {
         // 根据卡号查询卡信息
         CardData cardData = cardDataService.getCardByCardNo(cardNo);
         if (ObjectUtils.isEmpty(watDevice)) {
-            return ResponseEntity.ok(constructionResult(0, "设备不存在", cardNo, consumTransactionsVo));
+            return ResponseEntity.ok(constructionResult(0, "设备不存在或已经被禁用", cardNo, consumTransactionsVo));
         }
         if (ObjectUtils.isEmpty(consumTransactionsDto.getCardNo())) {
             return ResponseEntity.ok(constructionResult(0, "卡号不能为空", cardNo, consumTransactionsVo));
@@ -1002,7 +1002,7 @@ public class WaterController {
         }
         WatDevice watDevice = watDeviceService.getWatDevice(deviceId);
         if (ObjectUtils.isEmpty(watDevice)) {
-            return createOffLinesResult(0, "设备不存在", null);
+            return createOffLinesResult(0, "设备不存在或已经被禁用", null);
         }
         long cardNo = NumberUtils.toLong(offLinesDto.getCardNo());
         CardData cardData = cardDataService.getCardByCardNo(cardNo);

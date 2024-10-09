@@ -45,7 +45,7 @@ public class HeartBeatController {
         ServerTimeVo serverTimeVo = new ServerTimeVo();
         if (ObjectUtils.isEmpty(watDevice)) {
             serverTimeVo.setStatus(0);
-            serverTimeVo.setMsg("设备不存在");
+            serverTimeVo.setMsg("设备不存在或已经被禁用");
             return serverTimeVo;
         }
         // 获取当前日期时间
