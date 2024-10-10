@@ -119,8 +119,8 @@ public class HeartBeatController {
 
     @GetMapping("/stop")
     public String stop() {
-        WatDevicejobRecord watDevicejobRecord = watDeviceJobRecordService.getByDeviceJobId(0);
-        boolean remove = watDeviceJobRecordService.removeById(watDevicejobRecord);
+        List<WatDevicejobRecord> watDeviceJobRecordList = watDeviceJobRecordService.getByDeviceJobId(0);
+        boolean remove = watDeviceJobRecordService.removeBatchByIds(watDeviceJobRecordList);
         if (remove) {
             return "已经停止清空白名单任务";
         }

@@ -21,10 +21,11 @@ import org.springframework.stereotype.Service;
 public class CardDataServiceImpl extends ServiceImpl<CardDataMapper, CardData> implements ICardDataService {
 
     private final CardDataMapper cardDataMapper;
+
     @Override
     public CardData getCardByCardNo(Long cardNo) {
         QueryWrapper<CardData> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("CardSerNo", cardNo);
+        queryWrapper.eq("CardSerNo", cardNo).eq("CardStatusID", 1);
         return cardDataMapper.selectOne(queryWrapper);
     }
 

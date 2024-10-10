@@ -54,9 +54,9 @@ public class WatDevicejobRecordServiceImpl extends ServiceImpl<WatDevicejobRecor
     }
 
     @Override
-    public WatDevicejobRecord getByDeviceJobId(int i) {
+    public List<WatDevicejobRecord> getByDeviceJobId(int i) {
         QueryWrapper<WatDevicejobRecord> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("DeviceJobID", i);
-        return watDevicejobRecordMapper.selectOne(queryWrapper);
+        return watDevicejobRecordMapper.selectList(queryWrapper);
     }
 }

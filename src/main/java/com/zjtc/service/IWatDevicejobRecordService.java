@@ -22,5 +22,6 @@ public interface IWatDevicejobRecordService extends IService<WatDevicejobRecord>
 
     List<WatDevicejobRecord> getByDeviceId(String deviceId);
 
-    WatDevicejobRecord getByDeviceJobId(int i);
+    List<WatDevicejobRecord> getByDeviceJobId(int i);
+
 }
