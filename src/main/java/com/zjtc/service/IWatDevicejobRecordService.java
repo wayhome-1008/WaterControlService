@@ -1,6 +1,5 @@
 package com.zjtc.service;
 
-import com.zjtc.entity.PosDevicejob;
 import com.zjtc.entity.WatDevicejobRecord;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -16,12 +15,9 @@ import java.util.List;
  */
 public interface IWatDevicejobRecordService extends IService<WatDevicejobRecord> {
 
-    WatDevicejobRecord get(Integer deviceJobId, String deviceId);
-
-    void add(PosDevicejob posDevicejob, String deviceId);
 
     List<WatDevicejobRecord> getByDeviceId(String deviceId);
 
-    List<WatDevicejobRecord> getByDeviceJobId(int i);
+    List<WatDevicejobRecord> getByDeviceJobTypeId();
 
 }

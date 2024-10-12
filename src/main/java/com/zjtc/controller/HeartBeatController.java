@@ -1,11 +1,9 @@
 package com.zjtc.controller;
 
 import com.zjtc.dto.ServerTimeDto;
-import com.zjtc.entity.PosDevicejob;
 import com.zjtc.entity.WatDevice;
 import com.zjtc.entity.WatDevicejobRecord;
 import com.zjtc.entity.WatDeviceparameter;
-import com.zjtc.service.IPosDevicejobService;
 import com.zjtc.service.IWatDeviceService;
 import com.zjtc.service.IWatDevicejobRecordService;
 import com.zjtc.service.IWatDeviceparameterService;
@@ -34,7 +32,6 @@ import java.util.List;
 public class HeartBeatController {
 
     private final IWatDeviceService watDeviceService;
-    private final IPosDevicejobService posDeviceJobService;
     private final IWatDevicejobRecordService watDeviceJobRecordService;
     private final IWatDeviceparameterService watDeviceParameterService;
 
@@ -64,27 +61,13 @@ public class HeartBeatController {
         serverTimeVo.setStatus(1);
         serverTimeVo.setMsg("");
         serverTimeVo.setTime(formattedDateTime + adjustedDayOfWeek);
-        List<PosDevicejob> posDevicejobServiceList = posDeviceJobService.getList();
-        if (ObjectUtils.isNotEmpty(posDevicejobServiceList)) {
-            //把查询到的数据遍历
-            for (PosDevicejob posDevicejob : posDevicejobServiceList) {
-                //根据设备sn和设备任务id查询子表数据
-                WatDevicejobRecord watDevicejobRecord = watDeviceJobRecordService.get(posDevicejob.getDeviceJobID(), deviceId);
-                //如果子表没有数据那么就添加一条
-                if (ObjectUtils.isEmpty(watDevicejobRecord)) {
-                    watDeviceJobRecordService.add(posDevicejob, deviceId);
-                }
-            }
-        }
         serverTimeVo.setWhiteListUpDate(0);
         serverTimeVo.setWhiteListPage(1);
         serverTimeVo.setDoubleControl(1);
-        serverTimeVo.setICid(1);
+        serverTimeVo.setOffAmount(0D);
         WatDeviceparameter watDeviceparameter = watDeviceParameterService.getByDeviceId(watDevice.getDeviceID());
         if (ObjectUtils.isNotEmpty(watDeviceparameter)) {
-            if (watDeviceparameter.getDeviceOffLine() == 0) {
-                serverTimeVo.setOffAmount(0D);
-            } else if (watDeviceparameter.getDeviceOffLine() == 1) {
+            if (watDeviceparameter.getDeviceOffLine() == 1) {
                 serverTimeVo.setOffAmount(watDevice.getOffAmount());
             }
         }
@@ -92,7 +75,7 @@ public class HeartBeatController {
         if (ObjectUtils.isNotEmpty(watDevicejobRecordList)) {
             serverTimeVo.setWhiteListUpDate(1);
         }
-        if (ObjectUtils.isNotEmpty(watDeviceJobRecordService.getByDeviceJobId(0))) {
+        if (ObjectUtils.isNotEmpty(watDeviceJobRecordService.getByDeviceJobTypeId())) {
             serverTimeVo.setWhiteListUpDate(1);
             serverTimeVo.setWhiteListPage(0);
         }
@@ -102,14 +85,7 @@ public class HeartBeatController {
     @GetMapping("/clear")
     public String clear() {
         WatDevicejobRecord watDevicejobRecord = new WatDevicejobRecord();
-        watDevicejobRecord.setDeviceJobRecordID(0);
-        watDevicejobRecord.setDeviceJobID(0);
-        watDevicejobRecord.setDeviceID("");
         watDevicejobRecord.setDeviceJobTypeID(0);
-        watDevicejobRecord.setDeviceJobTypeName(null);
-        watDevicejobRecord.setDeviceJobStatus(0);
-        watDevicejobRecord.setEmployeeID(0);
-        watDevicejobRecord.setCreateTime(null);
         boolean save = watDeviceJobRecordService.save(watDevicejobRecord);
         if (save) {
             return "已经下发清空白名单任务";
@@ -119,7 +95,7 @@ public class HeartBeatController {
 
     @GetMapping("/stop")
     public String stop() {
-        List<WatDevicejobRecord> watDeviceJobRecordList = watDeviceJobRecordService.getByDeviceJobId(0);
+        List<WatDevicejobRecord> watDeviceJobRecordList = watDeviceJobRecordService.getByDeviceJobTypeId();
         boolean remove = watDeviceJobRecordService.removeBatchByIds(watDeviceJobRecordList);
         if (remove) {
             return "已经停止清空白名单任务";

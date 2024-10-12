@@ -32,7 +32,7 @@ public class VEmployeeDataServiceImpl extends ServiceImpl<VEmployeeDataMapper, V
     @Override
     public VEmployeeData getEmployeeByCardNo(Long cardNo) {
         QueryWrapper<VEmployeeData> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("CardSerNo", cardNo);
+        queryWrapper.eq("CardSerNo", cardNo).eq("EmployeeStatusID",1).eq("CardStatusID",1);
         if (vEmployeeDataMapper.selectOne(queryWrapper) != null) {
             return vEmployeeDataMapper.selectOne(queryWrapper);
         }

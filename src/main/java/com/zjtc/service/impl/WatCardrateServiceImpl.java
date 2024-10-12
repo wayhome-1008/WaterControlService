@@ -25,13 +25,6 @@ public class WatCardrateServiceImpl extends ServiceImpl<WatCardrateMapper, WatCa
     private final WatCardrateMapper watCardrateMapper;
 
     @Override
-    public WatCardrate getByDeviceId(Integer deviceId) {
-        QueryWrapper<WatCardrate> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("DeviceID", deviceId);
-        return watCardrateMapper.selectOne(queryWrapper);
-    }
-
-    @Override
     public List<WatCardrate> getListByDeviceId(Integer deviceId) {
         QueryWrapper<WatCardrate> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("DeviceID", deviceId);
@@ -39,9 +32,9 @@ public class WatCardrateServiceImpl extends ServiceImpl<WatCardrateMapper, WatCa
     }
 
     @Override
-    public WatCardrate getByCardTypeId(Integer cardTypeId) {
+    public WatCardrate getByCardTypeId(Integer cardTypeId, Integer deviceId) {
         QueryWrapper<WatCardrate> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("CardTypeID", cardTypeId);
+        queryWrapper.eq("CardTypeID", cardTypeId).eq("DeviceID", deviceId);
         return watCardrateMapper.selectOne(queryWrapper);
     }
 }

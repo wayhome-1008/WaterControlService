@@ -144,7 +144,7 @@ public class WaterController {
         consumTransactionsVo.setChargeMode(watDeviceparameter.getDevicePayModeID());
         consumTransactionsVo.setThermalControl(0);
         // 允许卡类中有此类卡那么就查询出此类卡的费率信息
-        WatCardrate watCardrate = watCardRateService.getByCardTypeId(cardData.getCardTypeID());
+        WatCardrate watCardrate = watCardRateService.getByCardTypeId(cardData.getCardTypeID(), watDevice.getDeviceID());
         // 当交易模式为查询余额时
         if (consumTransactionsDto.getMode() == 1) {
             // 现金余额
@@ -1028,7 +1028,7 @@ public class WaterController {
             return createOffLinesResult(0, "补助钱包不存在", null);
         }
         // 允许卡类中有此类卡那么就查询出此类卡的费率信息
-        WatCardrate watCardrate = watCardRateService.getByCardTypeId(cardData.getCardTypeID());
+        WatCardrate watCardrate = watCardRateService.getByCardTypeId(cardData.getCardTypeID(), watDevice.getDeviceID());
         // 根据deviceId查询设备基础参数信息
         WatDeviceparameter watDeviceparameter = watDeviceParameterService.getByDeviceId(watDevice.getDeviceID());
         // 根据employeeId查询今天这个人的消费时间

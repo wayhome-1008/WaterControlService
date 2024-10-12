@@ -28,9 +28,6 @@ public class WatDevicejobRecord implements Serializable {
     @TableId(value = "DeviceJobRecordID", type = IdType.AUTO)
     private Integer deviceJobRecordID;
 
-    @TableField("DeviceJobID")
-    private Integer deviceJobID;
-
     @TableField("DeviceID")
     private String deviceID;
 

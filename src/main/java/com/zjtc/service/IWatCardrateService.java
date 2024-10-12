@@ -15,10 +15,8 @@ import java.util.List;
  */
 public interface IWatCardrateService extends IService<WatCardrate> {
 
-    WatCardrate getByDeviceId(Integer deviceId);
-
     List<WatCardrate> getListByDeviceId(Integer deviceId);
 
-    WatCardrate getByCardTypeId(Integer cardTypeId);
+    WatCardrate getByCardTypeId(Integer cardTypeId,Integer deviceId);
 
 }
