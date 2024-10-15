@@ -133,4 +133,10 @@ public class WatDevice implements Serializable {
      */
     @TableField("OffAmount")
     private Double offAmount;
+
+    /**
+     * 水流通道(1通道一,2通道二,3双控)
+     */
+    @TableField("Channel")
+    private Integer channel;
 }

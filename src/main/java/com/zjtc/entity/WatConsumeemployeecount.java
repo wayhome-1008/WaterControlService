@@ -79,7 +79,7 @@ public class WatConsumeemployeecount implements Serializable {
     private Integer subsidyTimes;
 
     /**
-     * 今日消费时间(秒)
+     * 今日消费(秒|脉冲数)
      */
     @TableField("DailySpendTime")
     private Long dailySpendTime;
