@@ -1403,8 +1403,7 @@ public class WaterController {
                     if (cardSerNo.length() < 10) {
                         cardSerNo = String.format("%010d", vEmployeeData.getCardSerNo());
                     }
-                    //todo
-                    String result = watDevicejobRecord.getDeviceJobRecordID() + "|" + cardSerNo + "|" + operation;
+                    String result = watDevicejobRecord.getEmployeeID() + "|" + cardSerNo + "|" + operation;
                     if (resultBuilder.length() > 0) {
                         resultBuilder.append(",");
                     }
