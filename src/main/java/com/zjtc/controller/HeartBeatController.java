@@ -1,5 +1,6 @@
 package com.zjtc.controller;
 
+import com.zjtc.config.ApiMonitorService;
 import com.zjtc.dto.ServerTimeDto;
 import com.zjtc.entity.WatDevice;
 import com.zjtc.entity.WatDevicejobRecord;
@@ -34,6 +35,7 @@ public class HeartBeatController {
     private final IWatDeviceService watDeviceService;
     private final IWatDevicejobRecordService watDeviceJobRecordService;
     private final IWatDeviceparameterService watDeviceParameterService;
+    private final ApiMonitorService apiMonitorService;
 
     //2.1.获取服务器时间接口
     @PostMapping("/ServerTime")
@@ -79,6 +81,7 @@ public class HeartBeatController {
             serverTimeVo.setWhiteListUpDate(1);
             serverTimeVo.setWhiteListPage(0);
         }
+        apiMonitorService.handleApiRequest(deviceId);
         return serverTimeVo;
     }
 

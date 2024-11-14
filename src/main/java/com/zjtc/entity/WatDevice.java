@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Date;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -139,4 +140,10 @@ public class WatDevice implements Serializable {
      */
     @TableField("Channel")
     private Integer channel;
+
+    @TableField("DeviceOnLine")
+    private Integer deviceOnLine;
+
+    @TableField("DeviceLastDate")
+    private Date deviceLastDate;
 }
