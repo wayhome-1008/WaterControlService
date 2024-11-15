@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -74,10 +75,12 @@ public class ApiMonitorService {
         if (ObjectUtils.isNotEmpty(watDevice)) {
             if (ObjectUtils.isEmpty(watDevice.getDeviceOnLine())) {
                 watDevice.setDeviceOnLine(1);
+                watDevice.setDeviceLastDate(new Date());
                 watDeviceService.updateById(watDevice);
             } else {
                 if (watDevice.getDeviceOnLine() != 1) {
                     watDevice.setDeviceOnLine(1);
+                    watDevice.setDeviceLastDate(new Date());
                     watDeviceService.updateById(watDevice);
                 }
             }
