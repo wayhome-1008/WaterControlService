@@ -1,5 +1,6 @@
 package com.zjtc.config;
 
+import com.alibaba.fastjson.JSONObject;
 import com.zjtc.entity.WatDevice;
 import com.zjtc.service.IWatDeviceService;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class ApiMonitorService {
     // 存储设备ID和最后请求时间
-    private final ConcurrentHashMap<String, LocalDateTime> deviceRequestTimeMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, JSONObject> deviceRequestTimeMap = new ConcurrentHashMap<>();
     // 请求超时阈值，30秒内没有请求则认为超时
     private final long REQUEST_TIMEOUT_SECONDS = 30;
 
@@ -36,7 +37,11 @@ public class ApiMonitorService {
     public void mapInit() {
         List<WatDevice> list = watDeviceService.list();
         for (WatDevice watDevice : list) {
-            deviceRequestTimeMap.put(watDevice.getDeviceSN(), watDevice.getDeviceLastDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+            LocalDateTime localDateTime = watDevice.getDeviceLastDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("DeviceLastDate", localDateTime);
+            jsonObject.put("DeviceOnLine", watDevice.getDeviceOnLine());
+            deviceRequestTimeMap.put(watDevice.getDeviceSN(), jsonObject);
         }
     }
 
@@ -45,11 +50,15 @@ public class ApiMonitorService {
     @Scheduled(fixedRate = 5000)
     public void checkDeviceRequests() {
         LocalDateTime now = LocalDateTime.now();
-        deviceRequestTimeMap.forEach((deviceId, lastRequestTime) -> {
+        deviceRequestTimeMap.forEach((deviceId, jsonObject) -> {
+            LocalDateTime deviceLastDate = (LocalDateTime) jsonObject.get("DeviceLastDate");
+            Integer deviceOnLine = jsonObject.getInteger("DeviceOnLine");
             // 使用秒来判断超时
-            if (lastRequestTime.isBefore(now.minusSeconds(REQUEST_TIMEOUT_SECONDS))) {
+            if (deviceLastDate.isBefore(now.minusSeconds(REQUEST_TIMEOUT_SECONDS))) {
                 // 如果设备超时未请求，执行相应的操作
-                handleInactiveDevice(deviceId);
+                if (deviceOnLine == 1) {
+                    handleInactiveDevice(deviceId);
+                }
             }
         });
     }
@@ -59,6 +68,7 @@ public class ApiMonitorService {
         WatDevice watDevice = watDeviceService.getWatDevice(deviceId);
         if (ObjectUtils.isNotEmpty(watDevice)) {
             watDevice.setDeviceOnLine(0);
+            watDevice.setDeviceLastDate(new Date());
             watDeviceService.updateById(watDevice);
         }
     }
@@ -86,7 +96,10 @@ public class ApiMonitorService {
             }
         }
         // 更新设备请求时间
-        deviceRequestTimeMap.put(deviceId, LocalDateTime.now());
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("DeviceLastDate", LocalDateTime.now());
+        jsonObject.put("DeviceOnLine", watDevice.getDeviceOnLine());
+        deviceRequestTimeMap.put(deviceId, jsonObject);
     }
 }
 
