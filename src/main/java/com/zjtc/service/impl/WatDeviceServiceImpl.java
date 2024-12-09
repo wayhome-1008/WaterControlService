@@ -30,4 +30,11 @@ public class WatDeviceServiceImpl extends ServiceImpl<WatDeviceMapper, WatDevice
         queryWrapper.eq("DeviceSN", deviceId).eq("DeviceStatusID", 1);
         return watDeviceMapper.selectOne(queryWrapper);
     }
+
+    @Override
+    public List<WatDevice> getList() {
+        QueryWrapper<WatDevice> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("DeviceStatusID", 1);
+        return watDeviceMapper.selectList(queryWrapper);
+    }
 }

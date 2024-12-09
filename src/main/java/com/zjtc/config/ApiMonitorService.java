@@ -35,7 +35,7 @@ public class ApiMonitorService {
     }
 
     public void mapInit() {
-        List<WatDevice> list = watDeviceService.list();
+        List<WatDevice> list = watDeviceService.getList();
         for (WatDevice watDevice : list) {
             LocalDateTime localDateTime = watDevice.getDeviceLastDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
             JSONObject jsonObject = new JSONObject();
