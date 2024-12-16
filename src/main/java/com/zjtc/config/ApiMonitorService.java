@@ -98,7 +98,11 @@ public class ApiMonitorService {
         // 更新设备请求时间
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("DeviceLastDate", LocalDateTime.now());
-        jsonObject.put("DeviceOnLine", watDevice.getDeviceOnLine());
+        if (ObjectUtils.isNotEmpty(watDevice)) {
+            jsonObject.put("DeviceOnLine", watDevice.getDeviceOnLine());
+        } else {
+            jsonObject.put("DeviceOnLine", 0);
+        }
         deviceRequestTimeMap.put(deviceId, jsonObject);
     }
 }
