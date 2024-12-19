@@ -37,4 +37,16 @@ public class WatDevicejobRecordServiceImpl extends ServiceImpl<WatDevicejobRecor
         queryWrapper.eq("DeviceJobTypeID", 0);
         return watDevicejobRecordMapper.selectList(queryWrapper);
     }
+
+    @Override
+    public List<WatDevicejobRecord> getByStatus(String deviceId) {
+        QueryWrapper<WatDevicejobRecord> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("DeviceJobStatus", 1);
+        return watDevicejobRecordMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    public void deleteList(List<WatDevicejobRecord> watDevicejobRecordDeleteList) {
+        watDevicejobRecordMapper.deleteBatchIds(watDevicejobRecordDeleteList);
+    }
 }

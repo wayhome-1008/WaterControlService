@@ -73,6 +73,10 @@ public class HeartBeatController {
                 serverTimeVo.setOffAmount(watDevice.getOffAmount());
             }
         }
+        List<WatDevicejobRecord> watDevicejobRecordDeleteList = watDeviceJobRecordService.getByStatus(deviceId);
+        if (ObjectUtils.isNotEmpty(watDevicejobRecordDeleteList)) {
+            watDeviceJobRecordService.deleteList(watDevicejobRecordDeleteList);
+        }
         List<WatDevicejobRecord> watDevicejobRecordList = watDeviceJobRecordService.getByDeviceId(deviceId);
         if (ObjectUtils.isNotEmpty(watDevicejobRecordList)) {
             serverTimeVo.setWhiteListUpDate(1);

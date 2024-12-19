@@ -20,4 +20,7 @@ public interface IWatDevicejobRecordService extends IService<WatDevicejobRecord>
 
     List<WatDevicejobRecord> getByDeviceJobTypeId();
 
+    List<WatDevicejobRecord> getByStatus(String deviceId);
+
+    void deleteList(List<WatDevicejobRecord> watDevicejobRecordDeleteList);
 }
