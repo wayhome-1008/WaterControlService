@@ -1578,7 +1578,11 @@ public class WaterController {
             StringBuilder resultBuilder = new StringBuilder();
             //定义operation默认为1代表操作添加白名单
             int operation = 1;
+            int count = 0;
             for (WatDevicejobRecord watDevicejobRecord : watDevicejobRecordList) {
+                if (count >= 10) {
+                    break;
+                }
                 //当任务类型为删除人员的时候，把这条数据的operation修改为0操作删除白名单
                 if (watDevicejobRecord.getDeviceJobTypeID() == 3) {
                     operation = 0;
@@ -1598,6 +1602,7 @@ public class WaterController {
                     watDevicejobRecord.setDeviceJobStatus(1);
                     watDeviceJobRecordService.updateById(watDevicejobRecord);
                 }
+                count++;
             }
             String finalResult = resultBuilder.toString();
             //1|0000000001|1 序号|卡号|操作
