@@ -23,8 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ApiMonitorService {
     // 存储设备ID和最后请求时间
     private final ConcurrentHashMap<String, JSONObject> deviceRequestTimeMap = new ConcurrentHashMap<>();
-    // 请求超时阈值，30秒内没有请求则认为超时
-    private final long REQUEST_TIMEOUT_SECONDS = 30;
+    // 请求超时阈值，60秒内没有请求则认为超时
+    private final long REQUEST_TIMEOUT_SECONDS = 60;
 
     private final IWatDeviceService watDeviceService;
 
