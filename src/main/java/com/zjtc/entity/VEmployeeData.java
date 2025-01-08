@@ -137,8 +137,8 @@ public class VEmployeeData implements Serializable {
     /**
      * 银行代码
      */
-    @TableField("EmployeeBankID")
-    private Integer employeeBankID;
+    @TableField("EmployeeBankName")
+    private String employeeBankName;
 
     /**
      * 银行账号
