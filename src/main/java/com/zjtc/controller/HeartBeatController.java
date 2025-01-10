@@ -40,6 +40,7 @@ public class HeartBeatController {
     //2.1.获取服务器时间接口
     @PostMapping("/ServerTime")
     public ServerTimeVo serverTime(@RequestHeader("Device-ID") String deviceId, @RequestBody ServerTimeDto serverTimeDto) {
+        System.out.println(serverTimeDto.getSum());
         WatDevice watDevice = watDeviceService.getWatDevice(deviceId);
         ServerTimeVo serverTimeVo = new ServerTimeVo();
         if (ObjectUtils.isEmpty(watDevice)) {
@@ -69,8 +70,10 @@ public class HeartBeatController {
         serverTimeVo.setOffAmount(0D);
         WatDeviceparameter watDeviceparameter = watDeviceParameterService.getByDeviceId(watDevice.getDeviceID());
         if (ObjectUtils.isNotEmpty(watDeviceparameter)) {
-            if (watDeviceparameter.getDeviceOffLine() == 1) {
-                serverTimeVo.setOffAmount(watDevice.getOffAmount());
+            if (ObjectUtils.isNotEmpty(watDeviceparameter.getDeviceOffLine())) {
+                if (watDeviceparameter.getDeviceOffLine() == 1) {
+                    serverTimeVo.setOffAmount(watDevice.getOffAmount());
+                }
             }
         }
         List<WatDevicejobRecord> watDevicejobRecordDeleteList = watDeviceJobRecordService.getByStatus(deviceId);
