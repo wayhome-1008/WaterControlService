@@ -2,8 +2,10 @@ package com.zjtc.config;
 
 import com.alibaba.fastjson.JSONObject;
 import com.zjtc.entity.WatDevice;
+import com.zjtc.helper.DeviceSnHelper;
 import com.zjtc.service.IWatDeviceService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -12,7 +14,9 @@ import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -20,18 +24,22 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class ApiMonitorService {
     // 存储设备ID和最后请求时间
     private final ConcurrentHashMap<String, JSONObject> deviceRequestTimeMap = new ConcurrentHashMap<>();
     // 请求超时阈值，60秒内没有请求则认为超时
     private final long REQUEST_TIMEOUT_SECONDS = 60;
-
+    public static Set<String> WHITE_LIST = new HashSet<>();
+    private final DeviceSnHelper deviceSnHelper;
     private final IWatDeviceService watDeviceService;
 
     // 初始化
     @PostConstruct
     public void init() {
         mapInit();
+        WHITE_LIST = deviceSnHelper.listDeviceSn();
+        log.info("获取设备白名单:{}", WHITE_LIST);
     }
 
     public void mapInit() {

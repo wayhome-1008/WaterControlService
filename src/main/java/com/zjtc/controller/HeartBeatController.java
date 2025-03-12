@@ -2,6 +2,7 @@ package com.zjtc.controller;
 
 import com.zjtc.config.ApiMonitorService;
 import com.zjtc.dto.ServerTimeDto;
+import com.zjtc.dto.WhiteDevice;
 import com.zjtc.entity.WatDevice;
 import com.zjtc.entity.WatDevicejobRecord;
 import com.zjtc.entity.WatDeviceparameter;
@@ -19,6 +20,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+
+import static com.zjtc.config.ApiMonitorService.WHITE_LIST;
 
 /**
  * @Author: way
@@ -40,7 +43,8 @@ public class HeartBeatController {
     //2.1.获取服务器时间接口
     @PostMapping("/ServerTime")
     public ServerTimeVo serverTime(@RequestHeader("Device-ID") String deviceId, @RequestBody ServerTimeDto serverTimeDto) {
-        System.out.println(serverTimeDto.getSum());
+        log.info("设备号:{}发送心跳,设备白名单个数:{}", deviceId, serverTimeDto);
+        log.info("白名单:{}", WHITE_LIST);
         WatDevice watDevice = watDeviceService.getWatDevice(deviceId);
         ServerTimeVo serverTimeVo = new ServerTimeVo();
         if (ObjectUtils.isEmpty(watDevice)) {
@@ -81,6 +85,13 @@ public class HeartBeatController {
             watDeviceJobRecordService.deleteList(watDevicejobRecordDeleteList);
         }
         List<WatDevicejobRecord> watDevicejobRecordList = watDeviceJobRecordService.getByDeviceId(deviceId);
+        //判断是否有设备白名单任务
+        for (WatDevicejobRecord watDevicejobRecord : watDevicejobRecordList) {
+            if (watDevicejobRecord.getDeviceJobTypeID() == 4) {
+                WHITE_LIST.add(deviceId);
+                watDeviceJobRecordService.removeById(watDevicejobRecord);
+            }
+        }
         if (ObjectUtils.isNotEmpty(watDevicejobRecordList)) {
             serverTimeVo.setWhiteListUpDate(1);
         }

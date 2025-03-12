@@ -9,15 +9,15 @@ import com.baomidou.mybatisplus.generator.engine.FreemarkerTemplateEngine;
 public class CodeGenerator {
 
     public static void main(String[] args) {
-        FastAutoGenerator.create("jdbc:mysql://192.168.80.218:3306/ztsmartcard", "root", "MaJian880926")
+        FastAutoGenerator.create("jdbc:mysql://192.168.80.216:3306/ztsmartcard", "root", "root")
                 .globalConfig(
                         builder -> {
                             builder
                                     .author("way") // 设置作者
                                     .fileOverride() // 覆盖已生成文件
                                     .disableOpenDir() // 禁止打开输出目录
-                                    //.outputDir("D:\\work\\code\\PosService\\src\\main\\java"); // wh
-                                    .outputDir("D:\\project\\WaterConrtrolService\\src\\main\\java"); // cs
+                                    .outputDir("D:\\work\\code\\WaterControlService\\src\\main\\java"); // wh
+//                                    .outputDir("D:\\project\\WaterConrtrolService\\src\\main\\java"); // cs
                         })
                 .packageConfig(
                         builder -> {
@@ -36,7 +36,7 @@ public class CodeGenerator {
                         builder -> {
                             builder
                                     // 设置生成表名
-                                    .addInclude("wat_consumeemployeecount")
+                                    .addInclude("internal_device")
                                     // 开启lombok
                                     .entityBuilder()
                                     .enableLombok()
