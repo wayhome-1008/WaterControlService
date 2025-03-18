@@ -25,7 +25,7 @@ public class EmployeeBagsServiceImpl extends ServiceImpl<EmployeeBagsMapper, Emp
     @Override
     public EmployeeBags getBags(Integer employeeId, Integer bagId) {
         QueryWrapper<EmployeeBags> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("EmployeeID", employeeId).eq("BagID", bagId).eq("BagStatusID", 1);
+        queryWrapper.lambda().eq(EmployeeBags::getBagID, bagId).eq(EmployeeBags::getEmployeeID, employeeId);
         return employeeBagsMapper.selectOne(queryWrapper);
     }
 

@@ -39,8 +39,8 @@ public class EmployeeBags implements Serializable {
     @TableField("BagName")
     private String bagName;
 
-    @TableField("BagStatusID")
-    private Integer bagStatusID;
+//    @TableField("BagStatusID")
+//    private Integer bagStatusID;
 
     @TableField("BagMoney")
     private BigDecimal bagMoney;
