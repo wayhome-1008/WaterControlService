@@ -1288,6 +1288,7 @@ public class WaterController {
 
     @PostMapping("/OffLines")
     public OffLinesVo offLines(@RequestHeader("Device-ID") String deviceId, @RequestBody OffLinesDto offLinesDto) {
+        log.info("离线消费{}", offLinesDto);
         QueryWrapper<WatConsume> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("OrderNo", offLinesDto.getOrder());
         WatConsume watConsume = watConsumeService.getOne(queryWrapper);
