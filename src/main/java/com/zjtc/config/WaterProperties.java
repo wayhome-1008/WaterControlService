@@ -15,4 +15,8 @@ import org.springframework.context.annotation.Configuration;
 public class WaterProperties {
     // 校验设备是否本司服务url
     private String deviceValidityUrl;
+    //微信消费成功通知url
+    private String wechatPaymentNotifyUrl;
+    //微信消费失败通知url
+    private String wechatPaymentFailNotifyUrl;
 }

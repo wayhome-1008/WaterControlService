@@ -10,6 +10,22 @@ spring:
 #    configuration:
 #      map-underscore-to-camel-case: false
 #      log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#异步线程配置
+async:
+  executor:
+    thread:
+      # 配置核心线程数
+      core_pool_size: 10
+      # 配置最大线程数
+      max_pool_size: 20
+      # 配置队列大小
+      queue_capacity: 999
+      name:
+        prefix: async-service-
 waterProperties:
   #服务器远程校验sn合法url
   device-Validity-Url: http://192.168.80.222:6800/api/AuthorizeDevice/AuthorizeDevice
+  #微信消费成功通知url
+  wechat-payment-notify-url: http://192.168.80.222:28922/WeChat/WeChatNotify/ConsumeSuccessNotify
+  #微信消费失败通知url
+  wechat-payment-fail-notify-url: http://192.168.80.222:28922/WeChat/WeChatNotify/ConsumeFailureNotify
