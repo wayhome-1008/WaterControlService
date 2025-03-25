@@ -365,6 +365,7 @@ public class WaterController {
         if (watDeviceparameter.getDevicePayModeID() == 0) {
             ResponseEntity<byte[]> responseEntity = getResponseEntity(consumTransactionsDto, watDevice, employeeBags, grantsEmployeeBags, amount, watCardrate, watDeviceparameter, watConsumeemployeecount, cardData, consumTransactionsVo);
             if (responseEntity != null) {
+                log.info("计时消费返回数据:{}", responseEntity);
                 return responseEntity;
             }
         }
@@ -372,6 +373,7 @@ public class WaterController {
         else if (watDeviceparameter.getDevicePayModeID() == 1) {
             ResponseEntity<byte[]> responseEntity = getResponseEntity(consumTransactionsDto, watDevice, employeeBags, grantsEmployeeBags, amount, watCardrate, watDeviceparameter, watConsumeemployeecount, cardData, consumTransactionsVo);
             if (responseEntity != null) {
+                log.info("计量消费返回数据:{}", responseEntity);
                 return responseEntity;
             }
         }
