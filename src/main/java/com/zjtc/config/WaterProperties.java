@@ -4,6 +4,8 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 /**
  *@Author: way
  *@CreateTime: 2025-03-12  16:44
@@ -19,4 +21,8 @@ public class WaterProperties {
     private String wechatPaymentNotifyUrl;
     //微信消费失败通知url
     private String wechatPaymentFailNotifyUrl;
+    //设备状态异常通知人
+    private List<Integer> notifyEmployeeIds;
+    //设备状态异常通知url
+    private String deviceStatusWeChatUrl;
 }

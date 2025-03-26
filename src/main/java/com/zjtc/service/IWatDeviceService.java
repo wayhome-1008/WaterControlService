@@ -18,4 +18,8 @@ public interface IWatDeviceService extends IService<WatDevice> {
     WatDevice getWatDevice(String deviceId);
 
     List<WatDevice> getList();
+
+    void online(WatDevice hearBeatDevice);
+
+    void offline(WatDevice value);
 }

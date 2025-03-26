@@ -37,4 +37,24 @@ public class WatDeviceServiceImpl extends ServiceImpl<WatDeviceMapper, WatDevice
         queryWrapper.eq("DeviceStatusID", 1);
         return watDeviceMapper.selectList(queryWrapper);
     }
+
+    @Override
+    public void online(WatDevice hearBeatDevice) {
+        QueryWrapper<WatDevice> queryWrapper = new QueryWrapper<>();
+        queryWrapper.lambda().eq(WatDevice::getDeviceID, hearBeatDevice.getDeviceID()).ne(WatDevice::getDeviceStatusID, 3);
+        WatDevice posDevice = watDeviceMapper.selectOne(queryWrapper);
+        if (posDevice != null) {
+            watDeviceMapper.updateById(hearBeatDevice);
+        }
+    }
+
+    @Override
+    public void offline(WatDevice watDevice) {
+        QueryWrapper<WatDevice> queryWrapper = new QueryWrapper<>();
+        queryWrapper.lambda().eq(WatDevice::getDeviceID, watDevice.getDeviceID()).ne(WatDevice::getDeviceStatusID, 3);
+        WatDevice posDevice = watDeviceMapper.selectOne(queryWrapper);
+        if (posDevice != null) {
+            watDeviceMapper.updateById(watDevice);
+        }
+    }
 }

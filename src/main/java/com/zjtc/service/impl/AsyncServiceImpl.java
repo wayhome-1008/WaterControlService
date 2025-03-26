@@ -2,12 +2,15 @@ package com.zjtc.service.impl;
 
 import com.zjtc.Utils.RestUtils;
 import com.zjtc.config.WaterProperties;
+import com.zjtc.dto.DeviceStatusWeChatNotifyRequest;
 import com.zjtc.dto.WeChatPaymentFailNotifyRequest;
 import com.zjtc.dto.WeChatPaymentSuccessNotifyRequest;
 import com.zjtc.entity.ApiConfig;
+import com.zjtc.entity.AreaData;
 import com.zjtc.entity.WatDevice;
 import com.zjtc.service.AsyncService;
 import com.zjtc.service.IApiConfigService;
+import com.zjtc.service.IAreaDataService;
 import com.zjtc.service.IWatDeviceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +35,7 @@ public class AsyncServiceImpl implements AsyncService {
     private final IApiConfigService apiConfigService;
     private final IWatDeviceService watDeviceService;
     private final WaterProperties waterProperties;
+    private final IAreaDataService areaService;
 
     @Async("asyncServiceExecutor")
     @Override
@@ -71,6 +75,36 @@ public class AsyncServiceImpl implements AsyncService {
             weChatPaymentFailNotifyRequest.setPaymentTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             log.info("发送微信失败消息：{}", weChatPaymentFailNotifyRequest);
             RestUtils.sendHttp(waterProperties.getWechatPaymentFailNotifyUrl(), HttpMethod.POST, MediaType.APPLICATION_JSON, weChatPaymentFailNotifyRequest, Void.class);
+        }
+    }
+
+    @Override
+    public void sendDeviceStatus(Integer deviceID) {
+        ApiConfig apiConfig = apiConfigService.getById(1);
+        WatDevice watDevice = watDeviceService.getById(deviceID);
+        AreaData areaData = areaService.getById(watDevice.getDeviceAreaID());
+        if (ObjectUtils.isNotEmpty(areaData) && ObjectUtils.isNotEmpty(watDevice)) {
+            // 当配置文件有用户id才发
+            for (Integer notifyEmployeeId : waterProperties.getNotifyEmployeeIds()) {
+                if (ObjectUtils.isNotEmpty(notifyEmployeeId)) {
+                    DeviceStatusWeChatNotifyRequest deviceStatusWeChatNotifyRequest =
+                            new DeviceStatusWeChatNotifyRequest();
+                    deviceStatusWeChatNotifyRequest.setAppid(apiConfig.getAppID());
+                    deviceStatusWeChatNotifyRequest.setEmployeeId(notifyEmployeeId);
+                    deviceStatusWeChatNotifyRequest.setDeviceName(watDevice.getDeviceName());
+                    deviceStatusWeChatNotifyRequest.setAddress(areaData.getAreaName());
+                    deviceStatusWeChatNotifyRequest.setEventTime(
+                            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                    deviceStatusWeChatNotifyRequest.setDescription("设备离线");
+                    log.info("发送微信成功消息：{}", deviceStatusWeChatNotifyRequest);
+                    RestUtils.sendHttp(
+                            waterProperties.getDeviceStatusWeChatUrl(),
+                            HttpMethod.POST,
+                            MediaType.APPLICATION_JSON,
+                            deviceStatusWeChatNotifyRequest,
+                            Void.class);
+                }
+            }
         }
     }
 

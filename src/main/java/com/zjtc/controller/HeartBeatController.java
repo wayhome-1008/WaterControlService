@@ -52,8 +52,10 @@ public class HeartBeatController {
             serverTimeVo.setStatus(0);
             serverTimeVo.setMsg("设备不存在");
             return serverTimeVo;
+        } else {
+            //更新设备为在线
+            apiMonitorService.onLine(watDevice);
         }
-
         serverTimeVo.setStatus(1);
         serverTimeVo.setMsg("");
         serverTimeVo.setTime(TimeUtils.heartBeatTime());
@@ -88,7 +90,7 @@ public class HeartBeatController {
             serverTimeVo.setWhiteListUpDate(1);
             serverTimeVo.setWhiteListPage(0);
         }
-        apiMonitorService.handleApiRequest(deviceId);
+//        apiMonitorService.handleApiRequest(deviceId);
         return serverTimeVo;
     }
 

@@ -36,7 +36,7 @@ public class CodeGenerator {
                         builder -> {
                             builder
                                     // 设置生成表名
-                                    .addInclude("api_config")
+                                    .addInclude("area_data")
                                     // 开启lombok
                                     .entityBuilder()
                                     .enableLombok()

@@ -29,3 +29,8 @@ waterProperties:
   wechat-payment-notify-url: http://192.168.80.222:28922/WeChat/WeChatNotify/ConsumeSuccessNotify
   #微信消费失败通知url
   wechat-payment-fail-notify-url: http://192.168.80.222:28922/WeChat/WeChatNotify/ConsumeFailureNotify
+  #设备状态异常通知人
+  notify-Employee-Ids:
+    3
+  #设备状态异常通知url
+  device-status-we-chat-url: http://192.168.80.222:28922/WeChat/WeChatNotify/DeviceExceptionNotification
