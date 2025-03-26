@@ -83,7 +83,7 @@ public class AsyncServiceImpl implements AsyncService {
         ApiConfig apiConfig = apiConfigService.getById(1);
         WatDevice watDevice = watDeviceService.getById(deviceID);
         AreaData areaData = areaService.getById(watDevice.getDeviceAreaID());
-        if (ObjectUtils.isNotEmpty(areaData) && ObjectUtils.isNotEmpty(watDevice)) {
+        if (ObjectUtils.isNotEmpty(areaData) && ObjectUtils.isNotEmpty(watDevice) && ObjectUtils.isNotEmpty(waterProperties.getNotifyEmployeeIds())) {
             // 当配置文件有用户id才发
             for (Integer notifyEmployeeId : waterProperties.getNotifyEmployeeIds()) {
                 if (ObjectUtils.isNotEmpty(notifyEmployeeId)) {
