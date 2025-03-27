@@ -2,6 +2,7 @@ package com.zjtc.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.zjtc.Utils.TimeUtils;
 import com.zjtc.dto.ConsumTransactionsDto;
 import com.zjtc.dto.OffLinesDto;
 import com.zjtc.dto.WhiteListDto;
@@ -103,23 +104,9 @@ public class WaterController {
         WatConsumeemployeecount watConsumeemployeecount = watConsumeEmployeeCountService.getConsumeEmployeeCountByEmployeeId(cardData.getEmployeeID());
         // 查询余额
         if (consumTransactionsDto.getMode() == 1) {
-            if (ObjectUtils.isNotEmpty(watLastconsume)) {
-                // 如果两次消费间隔大于0进入判断
-                if (Integer.parseInt(watDeviceparameter.getConsumeGap()) > 0) {
-                    // 获取基础参数的两次消费间隔秒数
-                    int consumeGap = Integer.parseInt(watDeviceparameter.getConsumeGap());
-                    // 获取现在的时间
-                    Date now = new Date();
-                    Calendar calendar = Calendar.getInstance();
-                    calendar.setTime(now);
-                    // 用现在的时间减去两次消费间隔的时间
-                    calendar.add(Calendar.SECOND, -consumeGap);
-                    Date thresholdTime = calendar.getTime();
-                    // 上次消费时间要在得到的这个时间之前才能正常使用否则返回错误
-                    // 判断最后消费时间是否在得到的时间之后，如果在后面那么就返回错误
-                    if (watLastconsume.getLastConsumeDate().after(thresholdTime)) {
-                        return ResponseEntity.ok(constructionResult(0, "两次消费间隔小于" + watDeviceparameter.getConsumeGap() + "秒", cardNo, consumTransactionsVo, deviceId, consumTransactionsDto.getOrder(), consumTransactionsDto.getMode()));
-                    }
+            if (ObjectUtils.isNotEmpty(watLastconsume) && Integer.parseInt(watDeviceparameter.getConsumeGap()) > 0) {
+                if (!TimeUtils.isIntervalLimit(watLastconsume.getLastConsumeDate(), Integer.valueOf(watDeviceparameter.getConsumeGap()))) {
+                    return ResponseEntity.ok(constructionResult(0, "消费间隔限制", cardNo, consumTransactionsVo, deviceId, consumTransactionsDto.getOrder(), consumTransactionsDto.getMode()));
                 }
                 // 如果每日最大消费次数大于0进入判断
                 if (watDeviceparameter.getDailyMaxConsume() > 0) {

@@ -10,6 +10,13 @@ import java.util.Date;
  *@Description: TODO
  */
 public class TimeUtils {
+    /**
+     * @description: 计算返回心跳时间
+     * @author: way
+     * @date: 2025/3/27 11:47
+     * @param: []
+     * @return: java.lang.String
+     **/
     public static String heartBeatTime() {
         // 获取当前日期时间
         Date now = new Date();
@@ -25,5 +32,21 @@ public class TimeUtils {
         // 格式化日期时间，并输出字符串
         String formattedDateTime = sdf.format(now);
         return formattedDateTime + adjustedDayOfWeek;
+    }
+
+    /**
+     * @description: 计算消费时间差 时间差大于限制则true
+     * @author: way
+     * @date: 2025/3/27 11:48
+     * @param: [lastConsumeDate, intervalLimit]
+     * @return: java.lang.Boolean
+     **/
+    public static Boolean isIntervalLimit(Date lastConsumeDate, Integer intervalLimit) {
+        Date now = new Date();
+        // 计算时间差（以毫秒为单位）
+        long timeDifferenceMillis = now.getTime() - lastConsumeDate.getTime();
+        // 将时间差转换为秒
+        long timeDifferenceSeconds = timeDifferenceMillis / 1000;
+        return timeDifferenceSeconds >= intervalLimit;
     }
 }
