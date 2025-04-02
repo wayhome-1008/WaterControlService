@@ -4,6 +4,8 @@ import com.alibaba.fastjson.annotation.JSONField;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 /**
  * @Author: way
  * @CreateTime: 2024-08-21  11:34
@@ -60,7 +62,7 @@ public class ConsumTransactionsVo {
     //费率（0.01元/脉冲数）
     @JsonProperty("Rate")
     @JSONField(name = "Rate")
-    private Double rate;
+    private BigDecimal rate;
 
     //脉冲数（1~65535）计费模式计时：毫秒数 计费模式计量：脉冲数
     @JsonProperty("Pulses2")
@@ -70,7 +72,7 @@ public class ConsumTransactionsVo {
     //费率（0.01元/脉冲数）
     @JsonProperty("Rate2")
     @JSONField(name = "Rate2")
-    private Double rate2;
+    private BigDecimal rate2;
 
     //时间/流量
     @JsonProperty("Timeflow")

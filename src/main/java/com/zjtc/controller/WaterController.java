@@ -1,28 +1,26 @@
 package com.zjtc.controller;
 
-import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.zjtc.Utils.TimeUtils;
 import com.zjtc.dto.ConsumTransactionsDto;
 import com.zjtc.dto.OffLinesDto;
 import com.zjtc.dto.WhiteListDto;
 import com.zjtc.entity.*;
 import com.zjtc.service.*;
-import com.zjtc.vo.ConsumTransactionsVo;
 import com.zjtc.vo.OffLinesVo;
 import com.zjtc.vo.WhiteListVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.Charset;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @Author: way
@@ -1295,6 +1293,7 @@ public class WaterController {
 
     @PostMapping("/OffLines")
     public OffLinesVo offLines(@RequestHeader("Device-ID") String deviceId, @RequestBody OffLinesDto offLinesDto) {
+    try {
         log.info("离线消费{}", offLinesDto);
         QueryWrapper<WatConsume> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("OrderNo", offLinesDto.getOrder());
@@ -1564,6 +1563,9 @@ public class WaterController {
             }
         }
         return createOffLinesResult(0, "水控机消费模式配置错误", order, null, deviceId, amount);
+    }catch (Exception e){
+        return createOffLinesResult(1, "异常消费抛出", offLinesDto.getOrder(), null, deviceId, new BigDecimal(offLinesDto.getMoney()));
+    }
     }
 
     private OffLinesVo createOffLinesResult(int status, String msg, String order, Integer employeeId, String deviceSn, BigDecimal amount) {

@@ -23,4 +23,5 @@ public interface IWatConsumeemployeecountService extends IService<WatConsumeempl
 
     WatConsumeemployeecount getConsumeEmployeeCountByEmployeeId(Integer employeeId);
 
+    WatConsumeemployeecount createOrUpdateConsumeEmployeeCount(WatDevice washDevice, EmployeeBags employeeBags, EmployeeBags grantsEmployeeBags, BigDecimal bagsMoney, BigDecimal grantsBagsMoney, ConsumTransactionsDto consumTransactionsDto, CardData cardData);
 }
