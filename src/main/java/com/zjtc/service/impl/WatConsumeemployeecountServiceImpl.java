@@ -2,10 +2,7 @@ package com.zjtc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.zjtc.dto.ConsumTransactionsDto;
-import com.zjtc.entity.CardData;
-import com.zjtc.entity.EmployeeBags;
-import com.zjtc.entity.WatConsumeemployeecount;
-import com.zjtc.entity.WatDevice;
+import com.zjtc.entity.*;
 import com.zjtc.mapper.WatConsumeemployeecountMapper;
 import com.zjtc.service.IWatConsumeemployeecountService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -43,65 +40,63 @@ public class WatConsumeemployeecountServiceImpl extends ServiceImpl<WatConsumeem
         // 格式化为字符串精确到秒
         String todayString = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         Date currentDate = new Date();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String todaySecondString = sdf.format(currentDate);
         // 构造 QueryWrapper
         //查询精确到日
         QueryWrapper<WatConsumeemployeecount> queryWrapper = new QueryWrapper<>();
         queryWrapper.lambda().eq(WatConsumeemployeecount::getConsumeDate, todayString)
                 .eq(WatConsumeemployeecount::getEmployeeID, employeeBags.getEmployeeID());
-        WatConsumeemployeecount washConsumeemployeecount = watConsumeemployeecountMapper.selectOne(queryWrapper);
+        WatConsumeemployeecount washConsumeEmployeeCount = watConsumeemployeecountMapper.selectOne(queryWrapper);
         //校验是否混合支付
         // 混合支付依据设备扣款顺序  1、3为补助+1   2、4为现金+1
         //同时为0说明免费
         boolean isFree = BigDecimal.ZERO.compareTo(bagsMoney) == 0 && BigDecimal.ZERO.compareTo(grantsBagsMoney) == 0;
         boolean isMixed = BigDecimal.ZERO.compareTo(bagsMoney) != 0 && BigDecimal.ZERO.compareTo(grantsBagsMoney) != 0;
-        if (ObjectUtils.isNotEmpty(washConsumeemployeecount)) {
+        if (ObjectUtils.isNotEmpty(washConsumeEmployeeCount)) {
             //更新精确到秒
-            washConsumeemployeecount.setConsumeDate(currentDate);
+            washConsumeEmployeeCount.setConsumeDate(currentDate);
             if (isFree) {
                 if (washDevice.getPriorityType() == 1 || washDevice.getPriorityType() == 3) {
                     //补助钱包支付
-                    washConsumeemployeecount.setSubsidyTimes(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getSubsidyTimes).orElse(0) + 1);
-                    washConsumeemployeecount.setSubsidyMoney(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getSubsidyMoney).orElse(BigDecimal.ZERO).add(grantsBagsMoney));
-                    washConsumeemployeecount.setDailyTimes(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getDailyTimes).orElse(0) + 1);
-                    washConsumeemployeecount.setDailyMoney(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getDailyMoney).orElse(BigDecimal.ZERO).add(grantsBagsMoney));
+                    washConsumeEmployeeCount.setSubsidyTimes(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getSubsidyTimes).orElse(0) + 1);
+                    washConsumeEmployeeCount.setSubsidyMoney(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getSubsidyMoney).orElse(BigDecimal.ZERO).add(grantsBagsMoney));
+                    washConsumeEmployeeCount.setDailyTimes(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getDailyTimes).orElse(0) + 1);
+                    washConsumeEmployeeCount.setDailyMoney(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getDailyMoney).orElse(BigDecimal.ZERO).add(grantsBagsMoney));
                 }
                 if (washDevice.getPriorityType() == 2 || washDevice.getPriorityType() == 4) {
                     //现金钱包支付
-                    washConsumeemployeecount.setCashTimes(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getCashTimes).orElse(0) + 1);
-                    washConsumeemployeecount.setCashMoney(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getCashMoney).orElse(BigDecimal.ZERO).add(bagsMoney));
-                    washConsumeemployeecount.setDailyTimes(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getDailyTimes).orElse(0) + 1);
-                    washConsumeemployeecount.setDailyMoney(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getDailyMoney).orElse(BigDecimal.ZERO).add(bagsMoney));
+                    washConsumeEmployeeCount.setCashTimes(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getCashTimes).orElse(0) + 1);
+                    washConsumeEmployeeCount.setCashMoney(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getCashMoney).orElse(BigDecimal.ZERO).add(bagsMoney));
+                    washConsumeEmployeeCount.setDailyTimes(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getDailyTimes).orElse(0) + 1);
+                    washConsumeEmployeeCount.setDailyMoney(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getDailyMoney).orElse(BigDecimal.ZERO).add(bagsMoney));
                 }
             }
             if (isMixed) {
                 //混合支付
-                washConsumeemployeecount.setCashTimes(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getCashTimes).orElse(0) + 1);
-                washConsumeemployeecount.setCashMoney(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getCashMoney).orElse(BigDecimal.ZERO).add(bagsMoney));
-                washConsumeemployeecount.setSubsidyTimes(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getSubsidyTimes).orElse(0) + 1);
-                washConsumeemployeecount.setSubsidyMoney(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getSubsidyMoney).orElse(BigDecimal.ZERO).add(grantsBagsMoney));
-                washConsumeemployeecount.setDailyTimes(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getDailyTimes).orElse(0) + 1);
-                washConsumeemployeecount.setDailyMoney(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getDailyMoney).orElse(BigDecimal.ZERO).add(bagsMoney).add(grantsBagsMoney));
+                washConsumeEmployeeCount.setCashTimes(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getCashTimes).orElse(0) + 1);
+                washConsumeEmployeeCount.setCashMoney(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getCashMoney).orElse(BigDecimal.ZERO).add(bagsMoney));
+                washConsumeEmployeeCount.setSubsidyTimes(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getSubsidyTimes).orElse(0) + 1);
+                washConsumeEmployeeCount.setSubsidyMoney(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getSubsidyMoney).orElse(BigDecimal.ZERO).add(grantsBagsMoney));
+                washConsumeEmployeeCount.setDailyTimes(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getDailyTimes).orElse(0) + 1);
+                washConsumeEmployeeCount.setDailyMoney(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getDailyMoney).orElse(BigDecimal.ZERO).add(bagsMoney).add(grantsBagsMoney));
             }
             if (!isMixed && !isFree) {
                 //不是混合支付
                 if (BigDecimal.ZERO.compareTo(bagsMoney) != 0) {
                     //仅现金支付
-                    washConsumeemployeecount.setCashTimes(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getCashTimes).orElse(0) + 1);
-                    washConsumeemployeecount.setCashMoney(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getCashMoney).orElse(BigDecimal.ZERO).add(bagsMoney));
-                    washConsumeemployeecount.setDailyTimes(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getDailyTimes).orElse(0) + 1);
-                    washConsumeemployeecount.setDailyMoney(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getDailyMoney).orElse(BigDecimal.ZERO).add(bagsMoney));
+                    washConsumeEmployeeCount.setCashTimes(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getCashTimes).orElse(0) + 1);
+                    washConsumeEmployeeCount.setCashMoney(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getCashMoney).orElse(BigDecimal.ZERO).add(bagsMoney));
+                    washConsumeEmployeeCount.setDailyTimes(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getDailyTimes).orElse(0) + 1);
+                    washConsumeEmployeeCount.setDailyMoney(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getDailyMoney).orElse(BigDecimal.ZERO).add(bagsMoney));
                 }
                 if (BigDecimal.ZERO.compareTo(grantsBagsMoney) != 0) {
                     //仅补助钱包支付
-                    washConsumeemployeecount.setSubsidyTimes(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getSubsidyTimes).orElse(0) + 1);
-                    washConsumeemployeecount.setSubsidyMoney(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getSubsidyMoney).orElse(BigDecimal.ZERO).add(grantsBagsMoney));
-                    washConsumeemployeecount.setDailyTimes(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getDailyTimes).orElse(0) + 1);
-                    washConsumeemployeecount.setDailyMoney(Optional.of(washConsumeemployeecount).map(WatConsumeemployeecount::getDailyMoney).orElse(BigDecimal.ZERO).add(grantsBagsMoney));
+                    washConsumeEmployeeCount.setSubsidyTimes(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getSubsidyTimes).orElse(0) + 1);
+                    washConsumeEmployeeCount.setSubsidyMoney(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getSubsidyMoney).orElse(BigDecimal.ZERO).add(grantsBagsMoney));
+                    washConsumeEmployeeCount.setDailyTimes(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getDailyTimes).orElse(0) + 1);
+                    washConsumeEmployeeCount.setDailyMoney(Optional.of(washConsumeEmployeeCount).map(WatConsumeemployeecount::getDailyMoney).orElse(BigDecimal.ZERO).add(grantsBagsMoney));
                 }
             }
-            return washConsumeemployeecount;
+            return washConsumeEmployeeCount;
         } else {
             //新增
             WatConsumeemployeecount add = new WatConsumeemployeecount();
@@ -148,6 +143,22 @@ public class WatConsumeemployeecountServiceImpl extends ServiceImpl<WatConsumeem
             return add;
         }
     }
+
+    @Override
+    public boolean checkDailyMaxConsumeTimes(Integer employeeId, WatDeviceparameter watDeviceparameter) {
+        // 当前日期的字符串形式
+        String todayString = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        // 构造 QueryWrapper
+        QueryWrapper<WatConsumeemployeecount> queryWrapper = new QueryWrapper<>();
+        queryWrapper.lambda().eq(WatConsumeemployeecount::getConsumeDate, todayString).eq(WatConsumeemployeecount::getEmployeeID, employeeId);
+        WatConsumeemployeecount watConsumeemployeecount = watConsumeemployeecountMapper.selectOne(queryWrapper);
+        //每日消费最大次数
+        Integer dailyMaxConsume = watDeviceparameter.getDailyMaxConsume();
+        if (dailyMaxConsume == 0) return false;
+        if (ObjectUtils.isEmpty(watConsumeemployeecount)) return false;
+        return dailyMaxConsume <= watConsumeemployeecount.getDailyTimes();
+    }
+
     @Override
     public WatConsumeemployeecount createOrUpdateConsumeEmployeeCount(WatDevice watDevice, EmployeeBags employeeBags, EmployeeBags grantsEmployeeBags, BigDecimal bagsMoney, BigDecimal grantsBagsMoney, CardData cardData, Long s) {
         // 获取当前日期

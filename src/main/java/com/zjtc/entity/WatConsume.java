@@ -67,11 +67,11 @@ public class WatConsume implements Serializable {
     @TableField("BagsID")
     private Integer bagsID;
 
-    /**
-     * 交易模式(0:刷卡扣费 1:查询余额)
-     */
-    @TableField("Mode")
-    private Integer mode;
+//    /**
+//     * 交易模式(0:刷卡扣费 1:查询余额)
+//     */
+//    @TableField("Mode")
+//    private Integer mode;
 
     /**
      * 消费金额
@@ -85,11 +85,11 @@ public class WatConsume implements Serializable {
     @TableField("ConsumeBalance")
     private BigDecimal consumeBalance;
 
-    /**
-     * 水流通道(1：通道一  2：通道二 3：双控)
-     */
-    @TableField("Channel")
-    private Integer channel;
+//    /**
+//     * 水流通道(1：通道一  2：通道二 3：双控)
+//     */
+//    @TableField("Channel")
+//    private Integer channel;
 
     /**
      * 创建人

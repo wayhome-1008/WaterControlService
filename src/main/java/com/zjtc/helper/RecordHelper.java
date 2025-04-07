@@ -63,7 +63,13 @@ public class RecordHelper {
         return washConsumeEmployeeCountService.createOrUpdateConsumeEmployeeCount(washDevice, employeeBags, grantsEmployeeBags, bagsMoney, grantsBagsMoney, consumTransactionsDto, cardData);
 
     }
-
+    /**
+     * @description: 构造WatConsume水控消费记录对象方法
+     * @author: way
+     * @date: 2025/4/3 14:37
+     * @param: [washDevice, employeeBags, amount, consumTransactionsDto, cardData]
+     * @return: com.zjtc.entity.WatConsume
+     **/
     public WatConsume createConsume(WatDevice washDevice, EmployeeBags employeeBags, BigDecimal amount, ConsumTransactionsDto consumTransactionsDto, CardData cardData) {
         WatConsume washConsume = new WatConsume();
 //        washConsume.setOriginalOrderNo(consumTransactionsDto.getOrder());
@@ -77,6 +83,7 @@ public class RecordHelper {
         washConsume.setBagsID(employeeBags.getBagID());
         washConsume.setCreateTime(new Date());
         washConsume.setAmount(amount);
+        washConsume.setCreateUserID(1);
 //        washConsume.setRemarks("在线消费");
         //校验offline
 //        Boolean isOffLines = Optional.of(consumTransactionsDto).map(ConsumTransactionsDto::isOffLines).orElse(false);

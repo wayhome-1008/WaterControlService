@@ -1,11 +1,8 @@
 package com.zjtc.service;
 
 import com.zjtc.dto.ConsumTransactionsDto;
-import com.zjtc.entity.CardData;
-import com.zjtc.entity.EmployeeBags;
-import com.zjtc.entity.WatConsumeemployeecount;
+import com.zjtc.entity.*;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.zjtc.entity.WatDevice;
 
 import java.math.BigDecimal;
 
@@ -24,4 +21,6 @@ public interface IWatConsumeemployeecountService extends IService<WatConsumeempl
     WatConsumeemployeecount getConsumeEmployeeCountByEmployeeId(Integer employeeId);
 
     WatConsumeemployeecount createOrUpdateConsumeEmployeeCount(WatDevice washDevice, EmployeeBags employeeBags, EmployeeBags grantsEmployeeBags, BigDecimal bagsMoney, BigDecimal grantsBagsMoney, ConsumTransactionsDto consumTransactionsDto, CardData cardData);
+
+    boolean checkDailyMaxConsumeTimes(Integer employeeId, WatDeviceparameter watDeviceparameter);
 }

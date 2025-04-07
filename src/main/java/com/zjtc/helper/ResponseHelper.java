@@ -14,6 +14,7 @@ import com.zjtc.vo.OffLinesVo;
 import com.zjtc.vo.ServerTimeVo;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -36,87 +37,89 @@ public class ResponseHelper {
     private final IVEmployeeDataService employeeDataService;
     private final AsyncService asyncService;
 
-    public byte[] constructionResult(Integer status, String msg, EmployeeBags employeeBags, EmployeeBags grantsEmployeeBags, ConsumTransactionsDto consumTransactionsDto, BigDecimal amount, String deviceSn, WatCardrate byId, WatDeviceparameter watDeviceparameter) {
-        ConsumTransactionsVo consumTransactionsVo = new ConsumTransactionsVo();
-        consumTransactionsVo.setStatus(status);
+    public byte[] constructionResult(Integer status, String msg, EmployeeBags employeeBags, EmployeeBags grantsEmployeeBags, ConsumTransactionsDto consumTransactionsDto, BigDecimal amount, String deviceSn, WatCardrate byId, WatDeviceparameter watDeviceparameter, Boolean isConsume) {
         Charset encoder = Charset.forName("GB2312");
+        ConsumTransactionsVo consumTransactionsVo = new ConsumTransactionsVo();
+        //状态
+        consumTransactionsVo.setStatus(status);
         VEmployeeData employeeByCardNo = employeeDataService.getEmployeeByCardNo(Long.valueOf(consumTransactionsDto.getCardNo()));
+        //用户姓名
+        if (ObjectUtils.isNotEmpty(employeeByCardNo)) {
+            consumTransactionsVo.setName(employeeByCardNo.getEmployeeName());
+        } else {
+            consumTransactionsVo.setName("");
+        }
         //返回成功结果
         if (status == 1) {
             consumTransactionsVo.setText(msg);
             consumTransactionsVo.setMsg("");
-            if (ObjectUtils.isNotEmpty(employeeByCardNo)) {
-                consumTransactionsVo.setName(employeeByCardNo.getEmployeeName());
-                //异步发送消费成功通知
+            //异步发送消费成功通知
+            if (ObjectUtils.isNotEmpty(employeeByCardNo) && isConsume) {
                 asyncService.sendWxMsg(employeeByCardNo.getEmployeeID(), deviceSn, amount, consumTransactionsDto.getOrder(), "在线交易");
-            } else {
-                consumTransactionsVo.setName("");
             }
-        }
-        //返回失败结果卡号为0
-        consumTransactionsVo.setCardNo(consumTransactionsDto.getCardNo());
-        //补助钱包
-        if (ObjectUtils.isNotEmpty(grantsEmployeeBags)) {
-            consumTransactionsVo.setSubsidy(String.valueOf(Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO)));
+            //返回失败结果
         } else {
-            consumTransactionsVo.setSubsidy("0.00");
-        }
-        //现金钱包
-        if (ObjectUtils.isNotEmpty(employeeBags)) {
-            if (ObjectUtils.isEmpty(employeeBags.getBagMoney())) {
-                consumTransactionsVo.setMoney("0.00");
-            } else {
-                consumTransactionsVo.setMoney(String.valueOf(employeeBags.getBagMoney()));
-            }
-        } else {
-            consumTransactionsVo.setMoney("0.00");
-        }
-        if (watDeviceparameter.getDevicePayModeID() == 0) {
-            consumTransactionsVo.setPulses(2000);
-            consumTransactionsVo.setPulses2(2000);
-        }
-        if (watDeviceparameter.getDevicePayModeID() == 1) {
-            consumTransactionsVo.setPulses(70);
-            consumTransactionsVo.setPulses2(70);
-        }
-        if (watDeviceparameter.getDeviceConModeID() == 0) {
-            //控制模式在常出模式下，为0；
-            consumTransactionsVo.setAmount("0");
-        }
-        if (watDeviceparameter.getDeviceConModeID() == 1) {
-            //计费模式（0：计时 1：计量）
-            if (watDeviceparameter.getDevicePayModeID() == 0) {
-                //计算预扣费金额封装方法
-                consumTransactionsVo.setAmount(MathUtils.calculatePreAmountForTime(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount()));
-            } else {
-                //计算预扣费金额封装方法
-                consumTransactionsVo.setAmount(calculatePreAmount(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount()));
-            }
-        }
-
-        if (watDeviceparameter.getDevicePayModeID() == 0) {
-            //计时
-            consumTransactionsVo.setRate(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit())));
-            consumTransactionsVo.setRate2(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit())));
-        } else {
-            //费率（0.01元/脉冲数）
-            //1元
-            consumTransactionsVo.setRate(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit()).divide(new BigDecimal(1000))));
-            consumTransactionsVo.setRate2(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit()).divide(new BigDecimal(1000))));
-        }
-        //返回失败结果
-        if (status == 0) {
             consumTransactionsVo.setMsg(msg);
             consumTransactionsVo.setText("");
-            if (ObjectUtils.isNotEmpty(employeeByCardNo)) {
+            if (ObjectUtils.isNotEmpty(employeeByCardNo) && isConsume) {
                 //异步发送消费失败通知
                 asyncService.sendWxMsgFail(employeeByCardNo.getEmployeeID(), deviceSn, amount, consumTransactionsDto.getOrder(), msg, "在线交易");
             }
-            return JSON.toJSONString(consumTransactionsVo).getBytes(encoder);
-
         }
-        log.info("消费交易结果{}", consumTransactionsVo);
+        //返回卡号
+        consumTransactionsVo.setCardNo(consumTransactionsDto.getCardNo());
+        //现金钱包
+        consumTransactionsVo.setMoney(Optional.of(employeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO).toString());
+        //补助钱包
+        consumTransactionsVo.setSubsidy(Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO).toString());
+        //控制模式
+        consumTransactionsVo.setConMode(Optional.of(watDeviceparameter).map(WatDeviceparameter::getDeviceConModeID).orElse(0));
+        //计费模式
+        consumTransactionsVo.setChargeMode(Optional.of(watDeviceparameter).map(WatDeviceparameter::getDevicePayModeID).orElse(0));
+        //脉冲数
+        setWatPulses(consumTransactionsVo, watDeviceparameter);
+        //费率
+        setWatRate(consumTransactionsVo, watDeviceparameter, byId);
+        if (ObjectUtils.isEmpty(watDeviceparameter)) {
+            consumTransactionsVo.setAmount("0");
+        } else {
+            if (watDeviceparameter.getDeviceConModeID() == 0) {
+                //控制模式在常出模式下，为0；
+                consumTransactionsVo.setAmount("0");
+            }
+            if (watDeviceparameter.getDeviceConModeID() == 1) {
+                //计费模式（0：计时 1：计量）
+                if (watDeviceparameter.getDevicePayModeID() == 0) {
+                    //计算预扣费金额封装方法
+                    consumTransactionsVo.setAmount(MathUtils.calculatePreAmountForTime(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount()));
+                } else {
+                    //计算预扣费金额封装方法
+                    consumTransactionsVo.setAmount(calculatePreAmount(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount()));
+                }
+            }
+        }
+        //时间/流量
+        consumTransactionsVo.setTimeFlow(1);
+        //水温度
+        consumTransactionsVo.setThermalControl(0);
         return JSON.toJSONString(consumTransactionsVo).getBytes(encoder);
+    }
+
+    private void setWatRate(ConsumTransactionsVo consumTransactionsVo, WatDeviceparameter watDeviceparameter, WatCardrate byId) {
+        BigDecimal value = Optional.ofNullable(watDeviceparameter)
+                .map(param -> {
+                    switch (param.getDevicePayModeID()) {
+                        case 0:
+                            return byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit())); // 根据实际情况设置值
+                        case 1:
+                            return byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit()).divide(new BigDecimal(1000))); // 根据实际情况设置值
+                        default:
+                            return BigDecimal.ZERO;
+                    }
+                })
+                .orElse(BigDecimal.ZERO);
+        consumTransactionsVo.setRate(value);
+        consumTransactionsVo.setRate2(value);
     }
 
     public ConsumTransactionsVo parseConsumTransactionsVo(byte[] data) {
@@ -152,8 +155,34 @@ public class ResponseHelper {
 //        return JSON.toJSONString(offLinesVo).getBytes(encoder);
 //    }
 
-//    public byte[] constructionHeartBeatResult(ServerTimeVo serverTimeVo) {
+    //    public byte[] constructionHeartBeatResult(ServerTimeVo serverTimeVo) {
 //        Charset encoder = Charset.forName("GB2312");
 //        return JSON.toJSONString(serverTimeVo).getBytes(encoder);
 //    }
+//            if (watDeviceparameter.getDevicePayModeID() == 0) {
+//        //计时
+//        consumTransactionsVo.setRate(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit())));
+//        consumTransactionsVo.setRate2(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit())));
+//    } else {
+//        //费率（0.01元/脉冲数）
+//        //1元
+//        consumTransactionsVo.setRate(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit()).divide(new BigDecimal(1000))));
+//        consumTransactionsVo.setRate2(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit()).divide(new BigDecimal(1000))));
+//    }
+    public static void setWatPulses(ConsumTransactionsVo consumTransactionsVo, WatDeviceparameter watDeviceparameter) {
+        int value = Optional.ofNullable(watDeviceparameter)
+                .map(param -> {
+                    switch (param.getDevicePayModeID()) {
+                        case 0:
+                            return 2000; // 根据实际情况设置值
+                        case 1:
+                            return 70; // 根据实际情况设置值
+                        default:
+                            return 0;
+                    }
+                })
+                .orElse(0);
+        consumTransactionsVo.setPulses(value);
+        consumTransactionsVo.setPulses2(value);
+    }
 }
