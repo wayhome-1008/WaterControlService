@@ -55,7 +55,7 @@ public class ResponseHelper {
             consumTransactionsVo.setMsg("");
             //异步发送消费成功通知
             if (ObjectUtils.isNotEmpty(employeeByCardNo) && isConsume) {
-                asyncService.sendWxMsg(employeeByCardNo.getEmployeeID(), deviceSn, amount, consumTransactionsDto.getOrder(), "在线交易");
+//                asyncService.sendWxMsg(employeeByCardNo.getEmployeeID(), deviceSn, amount, consumTransactionsDto.getOrder(), "在线交易");
             }
             //返回失败结果
         } else {
@@ -63,7 +63,7 @@ public class ResponseHelper {
             consumTransactionsVo.setText("");
             if (ObjectUtils.isNotEmpty(employeeByCardNo) && isConsume) {
                 //异步发送消费失败通知
-                asyncService.sendWxMsgFail(employeeByCardNo.getEmployeeID(), deviceSn, amount, consumTransactionsDto.getOrder(), msg, "在线交易");
+//                asyncService.sendWxMsgFail(employeeByCardNo.getEmployeeID(), deviceSn, amount, consumTransactionsDto.getOrder(), msg, "在线交易");
             }
         }
         //返回卡号
@@ -83,9 +83,10 @@ public class ResponseHelper {
         if (ObjectUtils.isEmpty(watDeviceparameter)) {
             consumTransactionsVo.setAmount("0");
         } else {
+            //当查询余额
             if (watDeviceparameter.getDeviceConModeID() == 0) {
                 //控制模式在常出模式下，为0；
-                consumTransactionsVo.setAmount("0");
+                consumTransactionsVo.setAmount(consumTransactionsDto.getAmount());
             }
             if (watDeviceparameter.getDeviceConModeID() == 1) {
                 //计费模式（0：计时 1：计量）
@@ -102,6 +103,7 @@ public class ResponseHelper {
         consumTransactionsVo.setTimeFlow(1);
         //水温度
         consumTransactionsVo.setThermalControl(0);
+        log.info("返回结果：{}", consumTransactionsVo);
         return JSON.toJSONString(consumTransactionsVo).getBytes(encoder);
     }
 

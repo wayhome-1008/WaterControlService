@@ -3,10 +3,9 @@ package com.zjtc.helper;
 import com.zjtc.Utils.OrderUtils;
 import com.zjtc.dto.ConsumTransactionsDto;
 import com.zjtc.entity.*;
-import com.zjtc.service.IEmployeeBagsService;
-import com.zjtc.service.IWatConsumeService;
-import com.zjtc.service.IWatConsumeemployeecountService;
+import com.zjtc.service.*;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -24,6 +23,8 @@ public class RecordHelper {
     private final IEmployeeBagsService employeeBagsService;
     private final IWatConsumeService washConsumeService;
     private final IWatConsumeemployeecountService washConsumeEmployeeCountService;
+    private final IWatLastconsumeService watLastConsumeService;
+    private final IWatConsumecountService watConsumeCountService;
 
     public void grantsFirstCashAfter(WatDevice washDevice, EmployeeBags employeeBags, BigDecimal amount, EmployeeBags grantsEmployeeBags, ConsumTransactionsDto consumTransactionsDto, CardData cardData) {
         BigDecimal bagMoney = Optional.of(employeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO);
@@ -47,22 +48,40 @@ public class RecordHelper {
 
         washConsumeService.save(createConsume(washDevice, grantsEmployeeBags, grantsBagsBagMoney, consumTransactionsDto, cardData));
         washConsumeService.save(createConsume(washDevice, employeeBags, amount.subtract(grantsBagsBagMoney), consumTransactionsDto, cardData));
-//
-//        // 新增或更新日消费记录 只加一次
-//        PosLastconsume posLastConsume = createOrUpdateLastConsume(washDevice.getDeviceID(), amount, cardData);
-//        posLastConsumeService.saveOrUpdate(posLastConsume);
-//        // 新增或更新消费统计记录
-//        PosConsumecount posConsumecount = createOrUpdateConsumeCount(washDevice.getDeviceID(), amount);
-//        posConsumeCountService.saveOrUpdate(posConsumecount);
-//
+        // 新增或更新日消费记录 只加一次
+        watLastConsumeService.saveOrUpdate(createOrUpdateLastConsume(amount, cardData));
+        // 新增或更新消费统计记录
+        watConsumeCountService.saveOrUpdate(watConsumeCountService.createOrUpdateConsumeCount(washDevice.getDeviceID(), amount));
+
         washConsumeEmployeeCountService.saveOrUpdate(createOrUpdateConsumeEmployeeCount(washDevice, employeeBags, grantsEmployeeBags, amount.subtract(grantsBagsBagMoney), grantsBagsBagMoney, consumTransactionsDto, cardData));
 
+    }
+
+    private WatLastconsume createOrUpdateLastConsume(BigDecimal amount, CardData cardData) {
+        WatLastconsume watLastconsume = watLastConsumeService.getLastConsumeByEmployeeId(cardData.getEmployeeID());
+        if (ObjectUtils.isNotEmpty(watLastconsume)) {
+            //更新
+            watLastconsume.setEmployeeID(cardData.getEmployeeID());
+            watLastconsume.setDailyTimes(watLastconsume.getDailyTimes() + 1);
+            watLastconsume.setDailyMoney(watLastconsume.getDailyMoney().add(amount));
+            watLastconsume.setLastConsumeDate(new Date());
+            return watLastconsume;
+        } else {
+            //新增
+            WatLastconsume posConsume = new WatLastconsume();
+            posConsume.setEmployeeID(cardData.getEmployeeID());
+            posConsume.setDailyTimes(1);
+            posConsume.setDailyMoney(amount);
+            posConsume.setLastConsumeDate(new Date());
+            return posConsume;
+        }
     }
 
     public WatConsumeemployeecount createOrUpdateConsumeEmployeeCount(WatDevice washDevice, EmployeeBags employeeBags, EmployeeBags grantsEmployeeBags, BigDecimal bagsMoney, BigDecimal grantsBagsMoney, ConsumTransactionsDto consumTransactionsDto, CardData cardData) {
         return washConsumeEmployeeCountService.createOrUpdateConsumeEmployeeCount(washDevice, employeeBags, grantsEmployeeBags, bagsMoney, grantsBagsMoney, consumTransactionsDto, cardData);
 
     }
+
     /**
      * @description: 构造WatConsume水控消费记录对象方法
      * @author: way
@@ -119,13 +138,11 @@ public class RecordHelper {
 
         washConsumeService.save(createConsume(washDevice, employeeBags, bagMoney, consumTransactionsDto, cardData));
         washConsumeService.save(createConsume(washDevice, grantsEmployeeBags, amount.subtract(bagMoney), consumTransactionsDto, cardData));
-//
-//        // 新增或更新日消费记录 只加一次
-//        PosLastconsume posLastConsume = createOrUpdateLastConsume(washDevice.getDeviceID(), amount, cardData);
-//        posLastConsumeService.saveOrUpdate(posLastConsume);
-//        // 新增或更新消费统计记录
-//        PosConsumecount posConsumecount = createOrUpdateConsumeCount(washDevice.getDeviceID(), amount);
-//        posConsumeCountService.saveOrUpdate(posConsumecount);
+        // 新增或更新日消费记录 只加一次
+        watLastConsumeService.saveOrUpdate(createOrUpdateLastConsume(amount, cardData));
+        // 新增或更新消费统计记录
+        watConsumeCountService.saveOrUpdate(watConsumeCountService.createOrUpdateConsumeCount(washDevice.getDeviceID(), amount));
+        // 新增或更新用户消费统计记录
 //
         washConsumeEmployeeCountService.saveOrUpdate(createOrUpdateConsumeEmployeeCount(washDevice, employeeBags, grantsEmployeeBags, bagMoney, amount.subtract(bagMoney), consumTransactionsDto, cardData));
     }
@@ -144,18 +161,15 @@ public class RecordHelper {
         WatConsume washConsume = createConsume(washDevice, grantsEmployeeBags, amount, consumTransactionsDto, cardData);
         washConsumeService.save(washConsume);
 //        // 新增或更新日消费记录
-//        PosLastconsume posLastConsume = createOrUpdateLastConsume(washDevice.getDeviceID(), amount, cardData);
-//        posLastConsumeService.saveOrUpdate(posLastConsume);
-//        // 新增或更新消费统计记录
-//        PosConsumecount posConsumecount = createOrUpdateConsumeCount(washDevice.getDeviceID(), amount);
-//        posConsumeCountService.saveOrUpdate(posConsumecount);
-//        // 新增或更新用户消费统计记录
-        WatConsumeemployeecount washConsumeEmployeeCount = createOrUpdateConsumeEmployeeCount(washDevice, employeeBags, grantsEmployeeBags, BigDecimal.ZERO, amount, consumTransactionsDto, cardData);
-        washConsumeEmployeeCountService.saveOrUpdate(washConsumeEmployeeCount);
+        watLastConsumeService.saveOrUpdate(createOrUpdateLastConsume(amount, cardData));
+        //        // 新增或更新消费统计记录
+        // 新增或更新消费统计记录
+        watConsumeCountService.saveOrUpdate(watConsumeCountService.createOrUpdateConsumeCount(washDevice.getDeviceID(), amount));
+        washConsumeEmployeeCountService.saveOrUpdate(createOrUpdateConsumeEmployeeCount(washDevice, employeeBags, grantsEmployeeBags, BigDecimal.ZERO, amount, consumTransactionsDto, cardData));
     }
 
     public void creditCardPaymentOnly(WatDevice washDevice, EmployeeBags employeeBags, BigDecimal amount, EmployeeBags grantsEmployeeBags, ConsumTransactionsDto consumTransactionsDto, CardData cardData) {
-        //bagMoney-amount
+        //bagMoney-amount(更新钱包金额为原金额减去消费金额)
         employeeBags.setBagMoney(Optional.of(employeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO).subtract(amount));
         //bagUpdateTime
         employeeBags.setBagUpdateTime(new Date());
@@ -167,15 +181,11 @@ public class RecordHelper {
         // 新增消费记录
         WatConsume washConsume = createConsume(washDevice, employeeBags, amount, consumTransactionsDto, cardData);
         washConsumeService.save(washConsume);
-//        // 新增或更新日消费记录
-//        PosLastconsume posLastConsume = createOrUpdateLastConsume(washDevice.getDeviceID(), amount, cardData);
-//        posLastConsumeService.saveOrUpdate(posLastConsume);
-//        // 新增或更新消费统计记录
-//        PosConsumecount posConsumecount = createOrUpdateConsumeCount(washDevice.getDeviceID(), amount);
-//        posConsumeCountService.saveOrUpdate(posConsumecount);
-//        // 新增或更新用户消费统计记录
-        WatConsumeemployeecount washConsumeEmployeeCount = createOrUpdateConsumeEmployeeCount(washDevice, employeeBags, grantsEmployeeBags, amount, BigDecimal.ZERO, consumTransactionsDto, cardData);
-        washConsumeEmployeeCountService.saveOrUpdate(washConsumeEmployeeCount);
+        // 新增或更新日消费记录 只加一次
+        watLastConsumeService.saveOrUpdate(createOrUpdateLastConsume(amount, cardData));
+        // 新增或更新消费统计记录
+        watConsumeCountService.saveOrUpdate(watConsumeCountService.createOrUpdateConsumeCount(washDevice.getDeviceID(), amount));
+        washConsumeEmployeeCountService.saveOrUpdate(createOrUpdateConsumeEmployeeCount(washDevice, employeeBags, grantsEmployeeBags, amount, BigDecimal.ZERO, consumTransactionsDto, cardData));
     }
 
     public void cashPaymentOnly(WatDevice washDevice, EmployeeBags employeeBags, BigDecimal amount, EmployeeBags grantsEmployeeBags, ConsumTransactionsDto consumTransactionsDto, CardData cardData) {
@@ -191,9 +201,11 @@ public class RecordHelper {
         // 新增消费记录
         WatConsume washConsume = createConsume(washDevice, employeeBags, amount, consumTransactionsDto, cardData);
         washConsumeService.save(washConsume);
-        // 新增或更新用户消费统计记录
-        WatConsumeemployeecount washConsumeEmployeeCount = createOrUpdateConsumeEmployeeCount(washDevice, employeeBags, grantsEmployeeBags, amount, BigDecimal.ZERO, consumTransactionsDto, cardData);
-        washConsumeEmployeeCountService.saveOrUpdate(washConsumeEmployeeCount);
+        // 新增或更新日消费记录 只加一次
+        watLastConsumeService.saveOrUpdate(createOrUpdateLastConsume(amount, cardData));
+        // 新增或更新消费统计记录
+        watConsumeCountService.saveOrUpdate(watConsumeCountService.createOrUpdateConsumeCount(washDevice.getDeviceID(), amount));
+        washConsumeEmployeeCountService.saveOrUpdate(createOrUpdateConsumeEmployeeCount(washDevice, employeeBags, grantsEmployeeBags, amount, BigDecimal.ZERO, consumTransactionsDto, cardData));
     }
 
 }

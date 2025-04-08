@@ -23,4 +23,6 @@ public interface IWatConsumeemployeecountService extends IService<WatConsumeempl
     WatConsumeemployeecount createOrUpdateConsumeEmployeeCount(WatDevice washDevice, EmployeeBags employeeBags, EmployeeBags grantsEmployeeBags, BigDecimal bagsMoney, BigDecimal grantsBagsMoney, ConsumTransactionsDto consumTransactionsDto, CardData cardData);
 
     boolean checkDailyMaxConsumeTimes(Integer employeeId, WatDeviceparameter watDeviceparameter);
+
+    boolean checkDailyMaxConsumeMoney(Integer employeeId, WatDeviceparameter watDeviceparameter);
 }

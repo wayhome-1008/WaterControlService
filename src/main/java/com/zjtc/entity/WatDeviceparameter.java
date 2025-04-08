@@ -80,23 +80,17 @@ public class WatDeviceparameter implements Serializable {
     @TableField("ConsumeGap")
     private String consumeGap;
 
-    /**
-     * 每日最大消费次数
-     */
-    @TableField("DailyMaxConsume")
-    private Integer dailyMaxConsume;
+    /** 每日最大消费额 */
+    @TableField("DailyMaxConsumeMoney")
+    private Integer dailyMaxConsumeMoney;
 
-    /**
-     * 单次最大消费量
-     */
-    @TableField("SingleConsumeTimes")
-    private String singleConsumeTimes;
+//  /** 单次最大消费量 */
+//  @TableField("SingleConsumeTimes")
+//  private String singleConsumeTimes;
 
-    /**
-     * 每日最大消费量
-     */
-    @TableField("DailyConsumeTimes")
-    private String dailyConsumeTimes;
+    /** 每日最大消费次数 */
+    @TableField("DailyMaxConsumeTimes")
+    private Integer dailyMaxConsumeTimes;
 
     /**
      * 一阶限制值

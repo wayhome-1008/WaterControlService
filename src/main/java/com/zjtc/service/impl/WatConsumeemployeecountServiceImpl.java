@@ -153,10 +153,25 @@ public class WatConsumeemployeecountServiceImpl extends ServiceImpl<WatConsumeem
         queryWrapper.lambda().eq(WatConsumeemployeecount::getConsumeDate, todayString).eq(WatConsumeemployeecount::getEmployeeID, employeeId);
         WatConsumeemployeecount watConsumeemployeecount = watConsumeemployeecountMapper.selectOne(queryWrapper);
         //每日消费最大次数
-        Integer dailyMaxConsume = watDeviceparameter.getDailyMaxConsume();
+        Integer dailyMaxConsume = watDeviceparameter.getDailyMaxConsumeTimes();
         if (dailyMaxConsume == 0) return false;
         if (ObjectUtils.isEmpty(watConsumeemployeecount)) return false;
         return dailyMaxConsume <= watConsumeemployeecount.getDailyTimes();
+    }
+
+    @Override
+    public boolean checkDailyMaxConsumeMoney(Integer employeeId, WatDeviceparameter watDeviceparameter) {
+        // 当前日期的字符串形式
+        String todayString = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        // 构造 QueryWrapper
+        QueryWrapper<WatConsumeemployeecount> queryWrapper = new QueryWrapper<>();
+        queryWrapper.lambda().eq(WatConsumeemployeecount::getConsumeDate, todayString).eq(WatConsumeemployeecount::getEmployeeID, employeeId);
+        WatConsumeemployeecount watConsumeemployeecount = watConsumeemployeecountMapper.selectOne(queryWrapper);
+        //每日最大消费额
+        Integer dailyConsumeTimes = watDeviceparameter.getDailyMaxConsumeMoney();
+        if (dailyConsumeTimes == 0) return false;
+        if (ObjectUtils.isEmpty(watConsumeemployeecount)) return false;
+        return dailyConsumeTimes < watConsumeemployeecount.getDailyMoney().longValue();
     }
 
     @Override
