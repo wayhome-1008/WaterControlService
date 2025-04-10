@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.Optional;
 
-import static com.zjtc.Utils.MathUtils.calculatePreAmount;
-import static com.zjtc.Utils.MathUtils.calculatePreAmountForTime;
+import static com.zjtc.Utils.MathUtils.*;
+import static com.zjtc.helper.ResponseHelper.realMoney;
 
 /**
  *@Author: way
@@ -152,7 +152,7 @@ public class TestController {
                 if (deviceConModeID == 1) {
                     //计算预扣费用
 //                    ConsumTransactionsVo vo = constructiveObject(consumTransactionsDto, watDeviceparameter, byId);
-                    return priorityTypeDecision(watDevice, employeeBags, new BigDecimal(MathUtils.calculatePreAmountForTime(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount())), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, byId, watDeviceparameter, true);
+                    return priorityTypeDecision(watDevice, employeeBags, new BigDecimal(MathUtils.calculatePreAmountForTime(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount(), watDeviceparameter)), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, byId, watDeviceparameter, true);
                 } else {
                     //todo 计时常出
                     //金额可以直接使用消费机给的
@@ -165,7 +165,7 @@ public class TestController {
 //                    String requestAmount = vo.getAmount();
                     //这个是消费机返回的消费金额 需要与预扣的金额比较看看那个大
                     //先算出来预扣的钱是多少
-                    String preAmountForTime = calculatePreAmountForTime(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount());
+                    String preAmountForTime = calculatePreAmountForTime(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount(), watDeviceparameter);
                     if (new BigDecimal(consumTransactionsDto.getAmount()).compareTo(new BigDecimal(preAmountForTime)) >= 0) {
                         return priorityTypeDecision(watDevice, employeeBags, new BigDecimal(consumTransactionsDto.getAmount()).divide(new BigDecimal(10)), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, byId, watDeviceparameter, true);
                     } else {
@@ -180,57 +180,20 @@ public class TestController {
         return null;
     }
 
-    private static ConsumTransactionsVo constructiveObject(ConsumTransactionsDto consumTransactionsDto, WatDeviceparameter watDeviceparameter, WatCardrate byId) {
-        ConsumTransactionsVo consumTransactionsVoForConsume = new ConsumTransactionsVo();
-        consumTransactionsVoForConsume.setStatus(1);
-        consumTransactionsVoForConsume.setCardNo(consumTransactionsDto.getCardNo());
-        consumTransactionsVoForConsume.setMoney(String.valueOf(1000));
-        consumTransactionsVoForConsume.setSubsidy(String.valueOf(1000));
-        if (watDeviceparameter.getDevicePayModeID() == 0) {
-            consumTransactionsVoForConsume.setPulses(2000);
-            consumTransactionsVoForConsume.setPulses2(2000);
-        }
-        if (watDeviceparameter.getDevicePayModeID() == 1) {
-            consumTransactionsVoForConsume.setPulses(70);
-            consumTransactionsVoForConsume.setPulses2(70);
-        }
-        if (watDeviceparameter.getDeviceConModeID() == 0) {
-            //控制模式在常出模式下，为0；
-            consumTransactionsVoForConsume.setAmount("0");
-        }
-        if (watDeviceparameter.getDeviceConModeID() == 1) {
-            //计费模式（0：计时 1：计量）
-            if (watDeviceparameter.getDevicePayModeID() == 0) {
-                //计算预扣费金额封装方法
-                consumTransactionsVoForConsume.setAmount(MathUtils.calculatePreAmountForTime(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount()));
-            } else {
-                //计算预扣费金额封装方法
-                consumTransactionsVoForConsume.setAmount(calculatePreAmount(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount()));
-            }
-        }
-
-        if (watDeviceparameter.getDevicePayModeID() == 0) {
-            //计时
-            consumTransactionsVoForConsume.setRate(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit())));
-            consumTransactionsVoForConsume.setRate2(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit())));
-        } else {
-            //费率（0.01元/脉冲数）
-            //1元
-            consumTransactionsVoForConsume.setRate(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit()).divide(new BigDecimal(1000))));
-            consumTransactionsVoForConsume.setRate2(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit()).divide(new BigDecimal(1000))));
-        }
-        //时间流量
-        consumTransactionsVoForConsume.setTimeFlow(1);
-        consumTransactionsVoForConsume.setThermalControl(0);
-        consumTransactionsVoForConsume.setText("");
-        consumTransactionsVoForConsume.setConMode(watDeviceparameter.getDeviceConModeID());
-        consumTransactionsVoForConsume.setChargeMode(watDeviceparameter.getDevicePayModeID());
-        return consumTransactionsVoForConsume;
-    }
-
     private ResponseEntity<byte[]> priorityTypeDecision(WatDevice washDevice, EmployeeBags employeeBags, BigDecimal amount, EmployeeBags grantsEmployeeBags, ConsumTransactionsDto consumTransactionsDto, CardData cardData, String deviceSn, WatCardrate cardRate, WatDeviceparameter watDeviceparameter, Boolean isConsume) {
         //对消费机返回金额反算出水量或用水时长再根据阶梯费率计算出金额
-        BigDecimal tieredRatesAmount = calculateTieredRatesAmount(amount, cardRate, watDeviceparameter);
+//         amount = calculateTieredRatesAmount(amount, cardRate, watDeviceparameter,isConsume);
+        //对消费计算真钱
+//        if (isConsume) {
+        ConsumTransactionsVo consumTransactionsVo = new ConsumTransactionsVo();
+        realMoney(consumTransactionsDto, amount, cardRate, watDeviceparameter, isConsume, consumTransactionsVo);
+        amount = new BigDecimal(consumTransactionsVo.getAmount());
+        if (isConsume) {
+            log.info("实际消费金额{}", amount);
+        } else {
+            log.info("实际查询金额{}", amount);
+        }
+//        }
         CardType cardType = cardTypeService.getById(cardData.getCardTypeID());
         //4.仅现金
         if (washDevice.getPriorityType() == 4) {
@@ -241,7 +204,7 @@ public class TestController {
                     recordHelper.cashPaymentOnly(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
 //                    return ResponseEntity.ok(responseHelper.constructionResult(1, "现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
                 } else {
-                    log.info("走到这了~~~~~~~~~~~");
+//                    log.info("走到这了~~~~~~~~~~~");
 //                    return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "现金消费"));
                 }
                 return ResponseEntity.ok(responseHelper.constructionResult(1, "现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
@@ -497,75 +460,5 @@ public class TestController {
         return ResponseEntity.ok(responseHelper.constructionResult(0, "消费机消费模式配置错误", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
     }
 
-    private BigDecimal calculateTieredRatesAmount(BigDecimal amount, WatCardrate cardRate, WatDeviceparameter watDeviceparameter) {
-        //判断设备是那种消费
-        if (watDeviceparameter.getDeviceConModeID() == 0) {
-            if (watDeviceparameter.getDevicePayModeID() == 0) {
-                //todo 计时常出
 
-            } else {
-                //todo 计时预扣
-            }
-        } else {
-            if (watDeviceparameter.getDevicePayModeID() == 0) {
-                //todo 计量常出
-            } else {
-                //todo 计量预扣
-            }
-        }
-        return null;
-    }
-//        private byte[] constructionResult (Integer status, String msg, Long cardNo, ConsumTransactionsVo
-//        consumTransactionsVo, String deviceSn, String order){
-//            consumTransactionsVo.setStatus(status);
-//            VEmployeeData employeeByCardNo = viewEmployeeDataService.getEmployeeByCardNo(cardNo);
-//            //返回成功结果
-//            if (status == 1) {
-//                consumTransactionsVo.setMsg(msg);
-//                consumTransactionsVo.setText(msg);
-//                if (ObjectUtils.isNotEmpty(employeeByCardNo)) {
-//                    consumTransactionsVo.setName(employeeByCardNo.getEmployeeName());
-////                if (isConsume) {
-////                    //异步发送消费成功通知
-////                    asyncService.sendWxMsg(employeeByCardNo.getEmployeeID(), deviceSn, BigDecimal.ZERO, order, "在线交易");
-////                }
-//                } else {
-//                    consumTransactionsVo.setName("");
-//                }
-//            }
-//            //返回失败结果卡号为0
-//            if (cardNo != 0) {
-//                String card = cardNo.toString();
-//                if (card.length() < 10) {
-//                    card = String.format("%010d", Integer.parseInt(card));
-//                }
-//                consumTransactionsVo.setCardNo(card);
-//            }
-//            if (cardNo == 0) {
-//                consumTransactionsVo.setCardNo("0");
-//            }
-//            //返回失败结果
-//            if (status == 0) {
-//                consumTransactionsVo.setMsg(msg);
-//                consumTransactionsVo.setText("");
-//                if (ObjectUtils.isNotEmpty(employeeByCardNo)) {
-//                    consumTransactionsVo.setName(employeeByCardNo.getEmployeeName());
-////                if (isConsume) {
-////                    //异步发送消费失败通知
-////                    asyncService.sendWxMsgFail(employeeByCardNo.getEmployeeID(), deviceSn,  BigDecimal.ZERO, order, msg, "在线交易");
-////                }
-//                } else {
-//                    consumTransactionsVo.setName("");
-//                }
-//            }
-//            if (consumTransactionsVo.getConMode() == 0) {
-//                log.info("刷卡返回{}", consumTransactionsVo);
-//            }
-//            if (consumTransactionsVo.getConMode() == 1) {
-//                log.info("查询返回{}", consumTransactionsVo);
-//            }
-//            Charset encoder = Charset.forName("GB2312");
-//            String jsonString = JSON.toJSONString(consumTransactionsVo);
-//            return jsonString.getBytes(encoder);
-//        }
 }

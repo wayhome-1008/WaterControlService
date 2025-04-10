@@ -80,31 +80,94 @@ public class ResponseHelper {
         setWatPulses(consumTransactionsVo, watDeviceparameter);
         //费率
         setWatRate(consumTransactionsVo, watDeviceparameter, byId);
-        if (ObjectUtils.isEmpty(watDeviceparameter)) {
-            consumTransactionsVo.setAmount("0");
-        } else {
-            //当查询余额
-            if (watDeviceparameter.getDeviceConModeID() == 0) {
-                //控制模式在常出模式下，为0；
-                consumTransactionsVo.setAmount(consumTransactionsDto.getAmount());
-            }
-            if (watDeviceparameter.getDeviceConModeID() == 1) {
-                //计费模式（0：计时 1：计量）
-                if (watDeviceparameter.getDevicePayModeID() == 0) {
-                    //计算预扣费金额封装方法
-                    consumTransactionsVo.setAmount(MathUtils.calculatePreAmountForTime(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount()));
-                } else {
-                    //计算预扣费金额封装方法
-                    consumTransactionsVo.setAmount(calculatePreAmount(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount()));
-                }
-            }
-        }
+//        realMoney(consumTransactionsDto, amount, byId, watDeviceparameter, isConsume, consumTransactionsVo);
+        consumTransactionsVo.setAmount(amount.toString());
         //时间/流量
         consumTransactionsVo.setTimeFlow(1);
         //水温度
         consumTransactionsVo.setThermalControl(0);
         log.info("返回结果：{}", consumTransactionsVo);
         return JSON.toJSONString(consumTransactionsVo).getBytes(encoder);
+    }
+
+    public static void realMoney(ConsumTransactionsDto consumTransactionsDto, BigDecimal amount, WatCardrate byId, WatDeviceparameter watDeviceparameter, Boolean isConsume, ConsumTransactionsVo consumTransactionsVo) {
+        if (ObjectUtils.isEmpty(watDeviceparameter)) {
+            consumTransactionsVo.setAmount("0");
+        } else {
+            //todo 常出模式
+            if (watDeviceparameter.getDeviceConModeID() == 0) {
+                if (isConsume) {
+                    //消费常出时需要换算金额记录表
+                    //（0：计时 1：计量）
+                    if (watDeviceparameter.getDevicePayModeID() == 0) {
+                        //常出计时的金额是对的
+                        //直接用金额换成时间算阶梯
+                        log.info("常出计时的金额：{}", amount);
+                        int i = amount.divide(byId.getCardRate()).multiply(new BigDecimal(watDeviceparameter.getMinimumUnit())).intValue();
+                        log.info("计时常出水量{}秒", i);
+                        BigDecimal bigDecimal = MathUtils.calculateFeeByTime(amount.divide(byId.getCardRate()).multiply(new BigDecimal(watDeviceparameter.getMinimumUnit())).intValue(), watDeviceparameter, byId.getCardRate());
+                        consumTransactionsVo.setAmount(bigDecimal.toString());
+                    } else {
+                        //常出计量的金额需/10
+                        log.info("消费机给我的{}",amount);
+                        int i = amount.divide(byId.getCardRate()).multiply(new BigDecimal(watDeviceparameter.getMinimumUnit())).intValue();
+                        log.info("计量预扣水量{}毫升", i);
+                        BigDecimal bigDecimal = MathUtils.calculateFeeByMilliliters(i, watDeviceparameter, byId.getCardRate());
+                        consumTransactionsVo.setAmount(bigDecimal.toString());
+                    }
+//                    BigDecimal tieredRatesAmount = MathUtils.calculateTieredRatesAmount((amount.divide(byId.getCardRate())), byId, watDeviceparameter);
+//                    consumTransactionsVo.setAmount(tieredRatesAmount.toString());
+                } else {
+                    //控制模式在常出模式下，为0；
+                    consumTransactionsVo.setAmount(amount.toString());
+                }
+            }
+            //预扣模式
+            if (watDeviceparameter.getDeviceConModeID() == 1) {
+                if (isConsume) {
+                    //计费模式（0：计时 1：计量）
+                    if (watDeviceparameter.getDevicePayModeID() == 0) {
+                        //计算预扣费金额封装方法
+                        String preAmountForTime = MathUtils.calculatePreAmountForTime(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount(), watDeviceparameter);
+                        log.info("计时预扣费{}", preAmountForTime);
+                        int i = new BigDecimal(preAmountForTime).divide(byId.getCardRate()).multiply(new BigDecimal(watDeviceparameter.getMinimumUnit())).intValue();
+                        log.info("计时预扣水量{}秒", i);
+                        //在于预扣钱阶梯计费
+//                        String money = MathUtils.calculateTieredRatesAmount(new BigDecimal(preAmountForTime), byId, watDeviceparameter).toString();
+                        BigDecimal bigDecimal = MathUtils.calculateFeeByTime(new BigDecimal(preAmountForTime).divide(byId.getCardRate()).multiply(new BigDecimal(watDeviceparameter.getMinimumUnit())).intValue(), watDeviceparameter, byId.getCardRate());
+                        consumTransactionsVo.setAmount(bigDecimal.toString());
+                    } else {
+                        String preAmountForTime = MathUtils.calculatePreAmount(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount(), watDeviceparameter);
+                        //计算预扣费金额封装方法
+//                        consumTransactionsVo.setAmount(MathUtils.calculatePreAmount(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount(), watDeviceparameter));
+                        log.info("预扣费{}", preAmountForTime);
+                        int i = new BigDecimal(preAmountForTime).divide(byId.getCardRate()).multiply(new BigDecimal(watDeviceparameter.getMinimumUnit())).divide(new BigDecimal("10")).intValue();
+                        log.info("计量预扣水量{}毫升", i);
+                        BigDecimal bigDecimal = MathUtils.calculateFeeByMilliliters(i, watDeviceparameter, byId.getCardRate());
+                        consumTransactionsVo.setAmount(bigDecimal.toString());
+                    }
+                } else {
+                    //不是消费时
+                    //计费模式（0：计时 1：计量）
+                    if (watDeviceparameter.getDevicePayModeID() == 0) {
+                        log.info("?ervaervbae??");
+                        //计算预扣费金额封装方法
+                        String preAmountForTime = MathUtils.calculatePreAmountForTime(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount(), watDeviceparameter);
+                        //再去算阶梯
+//                        BigDecimal bigDecimal = MathUtils.calculateFeeByTime(Integer.parseInt(preAmountForTime), watDeviceparameter, byId.getCardRate());
+                        consumTransactionsVo.setAmount(preAmountForTime);
+                    } else {
+                        log.info("???1ecqcqec");
+                        //计算预扣费金额封装方法
+                        String preAmountForTime = calculatePreAmount(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount(), watDeviceparameter);
+                        //再去算阶梯
+//                        BigDecimal bigDecimal = MathUtils.calculateFeeByMilliliters(new BigDecimal(preAmountForTime).divide(byId.getCardRate())), watDeviceparameter, byId.
+//                        getCardRate());
+                        consumTransactionsVo.setAmount(preAmountForTime);
+                    }
+                }
+            }
+        }
     }
 
     private void setWatRate(ConsumTransactionsVo consumTransactionsVo, WatDeviceparameter watDeviceparameter, WatCardrate byId) {
