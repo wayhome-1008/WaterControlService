@@ -185,9 +185,9 @@ public class TestController {
 //         amount = calculateTieredRatesAmount(amount, cardRate, watDeviceparameter,isConsume);
         //对消费计算真钱
 //        if (isConsume) {
-        ConsumTransactionsVo consumTransactionsVo = new ConsumTransactionsVo();
-        realMoney(consumTransactionsDto, amount, cardRate, watDeviceparameter, isConsume, consumTransactionsVo);
-        amount = new BigDecimal(consumTransactionsVo.getAmount());
+        //这个是阶梯费率计算后的钱
+        String realMoney = realMoney(amount, cardRate, watDeviceparameter, isConsume);
+        amount = new BigDecimal(realMoney);
         if (isConsume) {
             log.info("实际消费金额{}", amount);
         } else {
