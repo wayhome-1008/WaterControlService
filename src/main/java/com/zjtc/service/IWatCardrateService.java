@@ -19,4 +19,5 @@ public interface IWatCardrateService extends IService<WatCardrate> {
 
     WatCardrate getByCardTypeId(Integer cardTypeId,Integer deviceId);
 
+    WatCardrate cardTypeAllowed(Integer deviceId, Integer cardTypeId);
 }

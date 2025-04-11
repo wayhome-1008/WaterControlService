@@ -156,22 +156,17 @@ public class WatConsumeemployeecountServiceImpl extends ServiceImpl<WatConsumeem
         Integer dailyMaxConsume = watDeviceparameter.getDailyMaxConsumeTimes();
         if (dailyMaxConsume == 0) return false;
         if (ObjectUtils.isEmpty(watConsumeemployeecount)) return false;
-        return dailyMaxConsume <= watConsumeemployeecount.getDailyTimes();
+        return dailyMaxConsume <= watConsumeemployeecount.getDailyTimes() + 1;
     }
 
     @Override
-    public boolean checkDailyMaxConsumeMoney(Integer employeeId, WatDeviceparameter watDeviceparameter) {
-        // 当前日期的字符串形式
-        String todayString = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        // 构造 QueryWrapper
+    public boolean checkDailyMaxMoney(BigDecimal amount, Integer employeeId, WatDeviceparameter watDeviceparameter) {
         QueryWrapper<WatConsumeemployeecount> queryWrapper = new QueryWrapper<>();
-        queryWrapper.lambda().eq(WatConsumeemployeecount::getConsumeDate, todayString).eq(WatConsumeemployeecount::getEmployeeID, employeeId);
+        queryWrapper.lambda().eq(WatConsumeemployeecount::getConsumeDate, LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))).eq(WatConsumeemployeecount::getEmployeeID, employeeId);
         WatConsumeemployeecount watConsumeemployeecount = watConsumeemployeecountMapper.selectOne(queryWrapper);
-        //每日最大消费额
-        Integer dailyConsumeTimes = watDeviceparameter.getDailyMaxConsumeMoney();
-        if (dailyConsumeTimes == 0) return false;
-        if (ObjectUtils.isEmpty(watConsumeemployeecount)) return false;
-        return dailyConsumeTimes < watConsumeemployeecount.getDailyMoney().longValue();
+        if (watDeviceparameter.getDailyMaxConsumeMoney() == 0) return true;
+        if (ObjectUtils.isEmpty(watConsumeemployeecount)) return true;
+        return watDeviceparameter.getDailyMaxConsumeMoney() >= watConsumeemployeecount.getDailyMoney().add(amount).longValue();
     }
 
     @Override
@@ -244,19 +239,6 @@ public class WatConsumeemployeecountServiceImpl extends ServiceImpl<WatConsumeem
             }
             return add;
         }
-    }
-
-    @Override
-    public WatConsumeemployeecount getConsumeEmployeeCountByEmployeeId(Integer employeeId) {
-        // 获取当前日期
-        LocalDate today = LocalDate.now();
-        // 格式化为字符串
-        String todayString = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        // 构造 QueryWrapper
-        QueryWrapper<WatConsumeemployeecount> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("ConsumeDate", todayString);
-        queryWrapper.eq("EmployeeID", employeeId);
-        return watConsumeemployeecountMapper.selectOne(queryWrapper);
     }
 
     public static Date convertToDate(LocalDate localDate) {

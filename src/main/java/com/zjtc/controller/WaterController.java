@@ -1275,21 +1275,7 @@ public class WaterController {
 //        return watConsume;
 //    }
 
-    // 验证卡有效期
-    public static boolean isValidCardDate(Date cardStartDate, Date cardEndDate) {
-        // 获取当前日期和时间
-        Calendar todayCal = Calendar.getInstance();
-        // 设置为当前时间
-        todayCal.setTime(new Date());
-        // 将时间设置为当天的开始
-        todayCal.set(Calendar.HOUR_OF_DAY, 0);
-        todayCal.set(Calendar.MINUTE, 0);
-        todayCal.set(Calendar.SECOND, 0);
-        todayCal.set(Calendar.MILLISECOND, 0);
-        Date today = todayCal.getTime();
-        // 比较日期
-        return !today.before(cardStartDate) && !today.after(cardEndDate);
-    }
+
 
 //    @PostMapping("/OffLines")
 //    public OffLinesVo offLines(@RequestHeader("Device-ID") String deviceId, @RequestBody OffLinesDto offLinesDto) {

@@ -37,7 +37,7 @@ public class ResponseHelper {
     private final IVEmployeeDataService employeeDataService;
     private final AsyncService asyncService;
 
-    public byte[] constructionResult(Integer status, String msg, EmployeeBags employeeBags, EmployeeBags grantsEmployeeBags, ConsumTransactionsDto consumTransactionsDto, BigDecimal amount, String deviceSn, WatCardrate byId, WatDeviceparameter watDeviceparameter, Boolean isConsume) {
+    public byte[] constructionResult(Integer status, String msg, EmployeeBags employeeBags, EmployeeBags grantsEmployeeBags, ConsumTransactionsDto consumTransactionsDto, BigDecimal amount, String deviceSn, WatCardrate cardRate, WatDeviceparameter watDeviceParameter, Boolean isConsume) {
         Charset encoder = Charset.forName("GB2312");
         ConsumTransactionsVo consumTransactionsVo = new ConsumTransactionsVo();
         //状态
@@ -69,17 +69,17 @@ public class ResponseHelper {
         //返回卡号
         consumTransactionsVo.setCardNo(consumTransactionsDto.getCardNo());
         //现金钱包
-        consumTransactionsVo.setMoney(Optional.of(employeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO).toString());
+        consumTransactionsVo.setMoney(Optional.ofNullable(employeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO).toString());
         //补助钱包
-        consumTransactionsVo.setSubsidy(Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO).toString());
+        consumTransactionsVo.setSubsidy(Optional.ofNullable(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO).toString());
         //控制模式
-        consumTransactionsVo.setConMode(Optional.of(watDeviceparameter).map(WatDeviceparameter::getDeviceConModeID).orElse(0));
+        consumTransactionsVo.setConMode(Optional.ofNullable(watDeviceParameter).map(WatDeviceparameter::getDeviceConModeID).orElse(0));
         //计费模式
-        consumTransactionsVo.setChargeMode(Optional.of(watDeviceparameter).map(WatDeviceparameter::getDevicePayModeID).orElse(0));
+        consumTransactionsVo.setChargeMode(Optional.ofNullable(watDeviceParameter).map(WatDeviceparameter::getDevicePayModeID).orElse(0));
         //脉冲数
-        setWatPulses(consumTransactionsVo, watDeviceparameter);
+        setWatPulses(consumTransactionsVo, watDeviceParameter);
         //费率
-        setWatRate(consumTransactionsVo, watDeviceparameter, byId);
+        setWatRate(consumTransactionsVo, watDeviceParameter, cardRate);
 //        realMoney(consumTransactionsDto, amount, byId, watDeviceparameter, isConsume, consumTransactionsVo);
         consumTransactionsVo.setAmount(amount.toString());
         //时间/流量

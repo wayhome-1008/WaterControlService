@@ -1,5 +1,7 @@
 package com.zjtc.Utils;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -9,6 +11,7 @@ import java.util.Date;
  *@CreateTime: 2025-03-24  15:20
  *@Description: TODO
  */
+@Slf4j
 public class TimeUtils {
     /**
      * @description: 计算返回心跳时间
@@ -48,5 +51,26 @@ public class TimeUtils {
         // 将时间差转换为秒
         long timeDifferenceSeconds = timeDifferenceMillis / 1000;
         return timeDifferenceSeconds >= intervalLimit;
+    }
+
+    // 验证卡有效期
+    public static boolean isValidCardDate(Date cardStartDate, Date cardEndDate) {
+        try {
+            // 获取当前日期和时间
+            Calendar todayCal = Calendar.getInstance();
+            // 设置为当前时间
+            todayCal.setTime(new Date());
+            // 将时间设置为当天的开始
+            todayCal.set(Calendar.HOUR_OF_DAY, 0);
+            todayCal.set(Calendar.MINUTE, 0);
+            todayCal.set(Calendar.SECOND, 0);
+            todayCal.set(Calendar.MILLISECOND, 0);
+            Date today = todayCal.getTime();
+            // 比较日期
+            return !today.before(cardStartDate) && !today.after(cardEndDate);
+        } catch (Exception e) {
+            log.error("比较卡有效期日期报错", e);
+            return false;
+        }
     }
 }
