@@ -2,18 +2,23 @@ package com.zjtc.controller;
 
 import com.zjtc.Utils.MathUtils;
 import com.zjtc.dto.ConsumTransactionsDto;
+import com.zjtc.dto.WhiteListDto;
 import com.zjtc.entity.*;
 import com.zjtc.helper.RecordHelper;
 import com.zjtc.helper.ResponseHelper;
 import com.zjtc.service.*;
+import com.zjtc.vo.WhiteListVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
 import java.util.Optional;
 
 import static com.zjtc.Utils.MathUtils.calculatePreAmountForTime;
@@ -28,6 +33,7 @@ import static com.zjtc.helper.ResponseHelper.realMoney;
 @RestController
 @RequestMapping("/hxz/v1/Water")
 @RequiredArgsConstructor
+@Transactional(rollbackFor = Exception.class)
 @Slf4j
 public class TestController {
     private final IWatDevicejobRecordService watDeviceJobRecordService;
@@ -38,11 +44,7 @@ public class TestController {
     private final IEmployeeBagsService employeeBagsService;
     private final IWatDeviceparameterService watDeviceParameterService;
     private final IWatCardrateService watCardRateService;
-    private final IWatConsumeService watConsumeService;
-    private final IWatLastconsumeService watLastConsumeService;
-    private final IWatConsumecountService watConsumeCountService;
     private final IWatConsumeemployeecountService watConsumeEmployeeCountService;
-    private final AsyncService asyncService;
     private final RecordHelper recordHelper;
     private final ResponseHelper responseHelper;
 
@@ -81,76 +83,9 @@ public class TestController {
         //余额
         if (consumTransactionsDto.getMode() == 1) {
             log.info("查询余额{}", consumTransactionsDto);
-//            consumTransactionsVo.setCardNo(consumTransactionsDto.getCardNo());
-//            consumTransactionsVo.setMoney(String.valueOf(employeeBags.getBagMoney()));
-//            consumTransactionsVo.setSubsidy(String.valueOf(grantsEmployeeBags.getBagMoney()));
-//            //计费模式（0：计时 1：计量）
-//            //脉冲数（1~65535）计费模式计时：毫秒数；计费模式计量：脉冲数 计时填2000  计量的话 570
-//            //计时计量的脉冲数是不同的
-//            consumTransactionsVo.setChargeMode(watDeviceparameter.getDevicePayModeID());
-//            if (watDeviceparameter.getDevicePayModeID() == 0) {
-//                consumTransactionsVo.setPulses(2000);
-//                consumTransactionsVo.setPulses2(2000);
-//            }
-//            if (watDeviceparameter.getDevicePayModeID() == 1) {
-//                consumTransactionsVo.setPulses(70);
-//                consumTransactionsVo.setPulses2(70);
-//            }
-//            //控制模式（0:常出 1:预扣）
-//            //控制模式在预扣模式下，表示预扣的金额
-//            consumTransactionsVo.setConMode(watDeviceparameter.getDeviceConModeID());
-//            if (watDeviceparameter.getDeviceConModeID() == 0) {
-//                //控制模式在常出模式下，为0；
-//                consumTransactionsVo.setAmount("0");
-//            }
-//            if (watDeviceparameter.getDeviceConModeID() == 1) {
-//                //计费模式（0：计时 1：计量）
-//                if (watDeviceparameter.getDevicePayModeID() == 0) {
-//                    //计算预扣费金额封装方法
-//                    consumTransactionsVo.setAmount(MathUtils.calculatePreAmountForTime(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount()));
-//                } else {
-//                    //计算预扣费金额封装方法
-//                    consumTransactionsVo.setAmount(calculatePreAmount(byId.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount()));
-//                }
-//            }
-//            //todo 根据设备参数中的 单次最大消费额 来设置返回金额
-//            // 预扣时：直接使用预扣金额
-//            // 常出时: 直接使用常出金额
-//            if (watDeviceparameter.getDevicePayModeID() == 0) {
-//                //计时
-//                consumTransactionsVo.setRate(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit())));
-//                consumTransactionsVo.setRate2(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit())));
-//            } else {
-//                //费率（0.01元/脉冲数）
-//                //1元
-//                consumTransactionsVo.setRate(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit()).divide(new BigDecimal(1000))));
-//                consumTransactionsVo.setRate2(byId.getCardRate().divide(new BigDecimal(watDeviceparameter.getMinimumUnit()).divide(new BigDecimal(1000))));
-//            }
-//            //时间流量
-//            consumTransactionsVo.setTimeFlow(1);
-//            consumTransactionsVo.setThermalControl(0);
-            //校验消费时间限制
-            //校验每日最大消费次数 根据consume_employee_count
             boolean isMaxTimes = watConsumeEmployeeCountService.checkDailyMaxConsumeTimes(cardData.getEmployeeID(), watDeviceparameter);
             if (isMaxTimes)
                 return ResponseEntity.ok(responseHelper.constructionResult(0, "消费次数限制", employeeBags, grantsEmployeeBags, consumTransactionsDto, BigDecimal.ZERO, deviceId, watCardrate, watDeviceparameter, false));
-            //该步骤只是当此次交易满足情况后再去校验金额是否满足然后返回结果
-//            ResponseEntity<byte[]> responseEntity = priorityTypeDecision(watDevice, employeeBags, BigDecimal.ZERO, grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, byId, watDeviceparameter, false);
-            //实际在此处转换只是为了将字节转换为对象 方便去判断
-//            ConsumTransactionsVo result = responseHelper.parseConsumTransactionsVo(responseEntity.getBody());
-//            ConsumTransactionsVo vo1 = constructiveObject(consumTransactionsDto, watDeviceparameter, byId);
-//            vo1.setName(viewEmployeeData.getEmployeeName());
-//            vo1.setStatus(vo.getStatus());
-//            if (vo.getStatus() == 1) {
-//                //查询成功显示text
-//                vo1.setText(vo.getMsg());
-//                vo1.setMsg("");
-//            } else {
-//                //查询失败显示msg
-//                vo1.setMsg(vo.getMsg());
-//                vo1.setText("");
-//            }
-//            log.info("返回的余额{}", vo1);
             return priorityTypeDecision(watDevice, employeeBags, BigDecimal.ZERO, grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, watCardrate, watDeviceparameter, false);
         }
         //扣费
@@ -164,7 +99,6 @@ public class TestController {
             if (devicePayModeID == 0) {
                 if (deviceConModeID == 1) {
                     //计算预扣费用
-//                    ConsumTransactionsVo vo = constructiveObject(consumTransactionsDto, watDeviceparameter, byId);
                     return priorityTypeDecision(watDevice, employeeBags, new BigDecimal(MathUtils.calculatePreAmountForTime(watCardrate.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount(), watDeviceparameter)), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, watCardrate, watDeviceparameter, true);
                 } else {
                     //todo 计时常出
@@ -174,19 +108,17 @@ public class TestController {
             } else {
                 if (deviceConModeID == 1) {
                     //todo 计量预扣 此处金额需/10
-//                    ConsumTransactionsVo vo = constructiveObject(consumTransactionsDto, watDeviceparameter, byId);
-//                    String requestAmount = vo.getAmount();
                     //这个是消费机返回的消费金额 需要与预扣的金额比较看看那个大
                     //先算出来预扣的钱是多少
                     String preAmountForTime = calculatePreAmountForTime(watCardrate.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount(), watDeviceparameter);
                     if (new BigDecimal(consumTransactionsDto.getAmount()).compareTo(new BigDecimal(preAmountForTime)) >= 0) {
-                        return priorityTypeDecision(watDevice, employeeBags, new BigDecimal(consumTransactionsDto.getAmount()).divide(new BigDecimal(10)), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, watCardrate, watDeviceparameter, true);
+                        return priorityTypeDecision(watDevice, employeeBags, new BigDecimal(consumTransactionsDto.getAmount()).divide(new BigDecimal(10),2, RoundingMode.HALF_UP), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, watCardrate, watDeviceparameter, true);
                     } else {
                         return priorityTypeDecision(watDevice, employeeBags, new BigDecimal(consumTransactionsDto.getAmount()), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, watCardrate, watDeviceparameter, true);
                     }
                 } else {
                     //todo 计量常出
-                    return priorityTypeDecision(watDevice, employeeBags, new BigDecimal(consumTransactionsDto.getAmount()).divide(new BigDecimal(10)), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, watCardrate, watDeviceparameter, true);
+                    return priorityTypeDecision(watDevice, employeeBags, new BigDecimal(consumTransactionsDto.getAmount()).divide(new BigDecimal(10),2, RoundingMode.HALF_UP), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, watCardrate, watDeviceparameter, true);
                 }
             }
         }
@@ -195,9 +127,7 @@ public class TestController {
 
     private ResponseEntity<byte[]> priorityTypeDecision(WatDevice washDevice, EmployeeBags employeeBags, BigDecimal amount, EmployeeBags grantsEmployeeBags, ConsumTransactionsDto consumTransactionsDto, CardData cardData, String deviceSn, WatCardrate cardRate, WatDeviceparameter watDeviceparameter, Boolean isConsume) {
         //对消费机返回金额反算出水量或用水时长再根据阶梯费率计算出金额
-//         amount = calculateTieredRatesAmount(amount, cardRate, watDeviceparameter,isConsume);
         //对消费计算真钱
-//        if (isConsume) {
         //这个是阶梯费率计算后的钱
         String realMoney = realMoney(amount, cardRate, watDeviceparameter, isConsume);
         amount = new BigDecimal(realMoney);
@@ -211,7 +141,6 @@ public class TestController {
         } else {
             log.info("实际查询金额{}", amount);
         }
-//        }
         CardType cardType = cardTypeService.getById(cardData.getCardTypeID());
         //4.仅现金
         if (washDevice.getPriorityType() == 4) {
@@ -220,10 +149,6 @@ public class TestController {
                 if (isConsume) {
                     //仅现金消费
                     recordHelper.cashPaymentOnly(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                    return ResponseEntity.ok(responseHelper.constructionResult(1, "现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
-                } else {
-//                    log.info("走到这了~~~~~~~~~~~");
-//                    return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "现金消费"));
                 }
                 return ResponseEntity.ok(responseHelper.constructionResult(1, "现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
             } else {
@@ -232,17 +157,9 @@ public class TestController {
                     if (isConsume) {
                         //仅信用卡消费
                         recordHelper.creditCardPaymentOnly(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                        return ResponseEntity.ok(responseHelper.constructionResult(1, "信用卡消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-                    } else {
-//                        return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "信用卡消费"));
                     }
                     return ResponseEntity.ok(responseHelper.constructionResult(1, "信用卡消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
                 } else {
-//                    if (isConsume) {
-//                        return ResponseEntity.ok(responseHelper.constructionResult(0, "现金不足", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
-//                    } else {
-////                        return ResponseEntity.ok(responseHelper.constructionResultForBalance(0, "补助不足"));
-//                    }
                     return ResponseEntity.ok(responseHelper.constructionResult(0, "现金不足", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
                 }
             }
@@ -254,16 +171,10 @@ public class TestController {
             if (Optional.of(grantsEmployeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO).compareTo(amount) >= 0) {
                 if (isConsume) {
                     recordHelper.grantsPaymentOnly(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                    return ResponseEntity.ok(responseHelper.constructionResult(1, "补助消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
                 }
                 return ResponseEntity.ok(responseHelper.constructionResult(1, "补助消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
             } else {
                 //补助不足够
-//                if (isConsume) {
-//                    return ResponseEntity.ok(responseHelper.constructionResult(0, "补助不足", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-//                } else {
-//                    return ResponseEntity.ok(responseHelper.constructionResultForBalance(0, "补助不足"));
-//                }
                 return ResponseEntity.ok(responseHelper.constructionResult(0, "补助不足", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
             }
         }
@@ -271,12 +182,7 @@ public class TestController {
         else if (washDevice.getPriorityType() == 2) {
             //现金金额>=消费金额
             if (Optional.of(employeeBags).map(EmployeeBags::getBagMoney).orElse(BigDecimal.ZERO).compareTo(amount) >= 0) {
-//                if (isConsume) {
                 recordHelper.cashPaymentOnly(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-////                    return ResponseEntity.ok(responseHelper.constructionResult(1, "现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-//                } else {
-//                    return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "现金消费"));
-//                }
                 return ResponseEntity.ok(responseHelper.constructionResult(1, "现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
             } else {
                 //现金金额<消费金额
@@ -290,18 +196,14 @@ public class TestController {
                         if (isConsume) {
                             //现金金额!=0->先现金后补助
                             recordHelper.cashFirstGrantsAfter(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                            return ResponseEntity.ok(responseHelper.constructionResult(1, "现金及现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-                        } else {
-//                            return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "现金及现金消费"));
                         }
                         return ResponseEntity.ok(responseHelper.constructionResult(1, "现金及现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
                     } else {
                         //现金金额=0->补助消费
                         if (isConsume) {
                             recordHelper.grantsPaymentOnly(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                            return ResponseEntity.ok(responseHelper.constructionResult(1, "补助消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
                         } else {
-                            return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "补助消费"));
+                            return ResponseEntity.ok(responseHelper.constructionResult(1, "补助消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
                         }
                         return ResponseEntity.ok(responseHelper.constructionResult(1, "补助消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
                     }
@@ -314,9 +216,6 @@ public class TestController {
                         if (bagMoney.compareTo(BigDecimal.ZERO) == 0 && grantsBagsBagMoney.compareTo(BigDecimal.ZERO) == 0) {
                             if (isConsume) {
                                 recordHelper.cashPaymentOnly(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                                return ResponseEntity.ok(responseHelper.constructionResult(1, "信用卡消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-                            } else {
-//                                return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "信用卡消费"));
                             }
                             return ResponseEntity.ok(responseHelper.constructionResult(1, "信用卡消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
 
@@ -325,9 +224,6 @@ public class TestController {
                         if (bagMoney.compareTo(BigDecimal.ZERO) == 0 && grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
                             if (isConsume) {
                                 recordHelper.grantsFirstCashAfter(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                                return ResponseEntity.ok(responseHelper.constructionResult(1, "补助及现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-                            } else {
-//                                return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "补助及现金消费"));
                             }
                             return ResponseEntity.ok(responseHelper.constructionResult(1, "补助及现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
 
@@ -337,9 +233,6 @@ public class TestController {
                             if (isConsume) {
                                 //相当于仅现金
                                 recordHelper.cashPaymentOnly(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                                return ResponseEntity.ok(responseHelper.constructionResult(1, "现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-                            } else {
-//                                return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "现金消费"));
                             }
                             return ResponseEntity.ok(responseHelper.constructionResult(1, "现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
 
@@ -348,9 +241,6 @@ public class TestController {
                         if (bagMoney.compareTo(BigDecimal.ZERO) != 0 && grantsBagsBagMoney.compareTo(BigDecimal.ZERO) > 0) {
                             if (isConsume) {
                                 recordHelper.grantsFirstCashAfter(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                                return ResponseEntity.ok(responseHelper.constructionResult(1, "现金及补助消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-                            } else {
-//                                return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "现金及补助消费"));
                             }
                             return ResponseEntity.ok(responseHelper.constructionResult(1, "现金及补助消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
 
@@ -359,17 +249,10 @@ public class TestController {
                             //混合支付  补助清空 现金为负
                             //相当于先补助后现金
                             recordHelper.grantsFirstCashAfter(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                            return ResponseEntity.ok(responseHelper.constructionResult(1, "信用卡消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-                        } else {
-//                            return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "信用卡消费"));
                         }
                         return ResponseEntity.ok(responseHelper.constructionResult(1, "信用卡消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
                     } else {
-//                        if (isConsume) {
                         return ResponseEntity.ok(responseHelper.constructionResult(0, "补助及现金不足", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
-//                        } else {
-//                            return ResponseEntity.ok(responseHelper.constructionResultForBalance(0, "补助及现金不足"));
-//                        }
                     }
                 }
             }
@@ -384,9 +267,6 @@ public class TestController {
             if (grantsBagsBagMoney.compareTo(amount) >= 0) {
                 if (isConsume) {
                     recordHelper.grantsPaymentOnly(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                        return ResponseEntity.ok(responseHelper.constructionResult(1, "补助消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-                } else {
-//                        return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "补助消费"));
                 }
                 return ResponseEntity.ok(responseHelper.constructionResult(1, "补助消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
             } else {
@@ -397,18 +277,12 @@ public class TestController {
                     if (grantsBagsBagMoney.compareTo(BigDecimal.ZERO) != 0) {
                         if (isConsume) {
                             recordHelper.grantsFirstCashAfter(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                                return ResponseEntity.ok(responseHelper.constructionResult(1, "补助及现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-                        } else {
-//                                return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "补助及现金消费"));
                         }
                         return ResponseEntity.ok(responseHelper.constructionResult(1, "补助及现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
                     } else {
                         if (isConsume) {
                             //补助钱包为0->仅现金支付
                             recordHelper.cashPaymentOnly(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                                return ResponseEntity.ok(responseHelper.constructionResult(1, "现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-                        } else {
-//                                return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "现金消费"));
                         }
                         return ResponseEntity.ok(responseHelper.constructionResult(1, "现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
 
@@ -422,9 +296,6 @@ public class TestController {
                         if (bagMoney.compareTo(BigDecimal.ZERO) == 0 && grantsBagsBagMoney.compareTo(BigDecimal.ZERO) == 0) {
                             if (isConsume) {
                                 recordHelper.cashPaymentOnly(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                                    return ResponseEntity.ok(responseHelper.constructionResult(1, "信用卡消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-                            } else {
-//                                    return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "信用卡消费"));
                             }
                             return ResponseEntity.ok(responseHelper.constructionResult(1, "信用卡消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
                         }
@@ -433,9 +304,6 @@ public class TestController {
                             if (isConsume) {
                                 //相当于先补助后现金
                                 recordHelper.grantsFirstCashAfter(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                                    return ResponseEntity.ok(responseHelper.constructionResult(1, "补助及现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-                            } else {
-//                                    return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "补助及现金消费"));
                             }
                             return ResponseEntity.ok(responseHelper.constructionResult(1, "补助及现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
                         }
@@ -444,39 +312,67 @@ public class TestController {
                             if (isConsume) {
                                 //相当于仅现金
                                 recordHelper.cashPaymentOnly(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                                    return ResponseEntity.ok(responseHelper.constructionResult(1, "现金及信用卡消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-                            } else {
-//                                    return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "现金及信用卡消费"));
                             }
                             return ResponseEntity.ok(responseHelper.constructionResult(1, "现金及信用卡消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
-
                         }
                         if (isConsume) {
                             //混合支付
                             recordHelper.grantsFirstCashAfter(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-//                                return ResponseEntity.ok(responseHelper.constructionResult(1, "补助及现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-                        } else {
-//                                return ResponseEntity.ok(responseHelper.constructionResultForBalance(1, "补助及现金消费"));
                         }
                         return ResponseEntity.ok(responseHelper.constructionResult(1, "补助及现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
                     } else {
-//                            if (isConsume) {
-//                                return ResponseEntity.ok(responseHelper.constructionResult(0, "补助及现金不足", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-//                            } else {
-//                                return ResponseEntity.ok(responseHelper.constructionResultForBalance(0, "补助及现金不足"));
-//                            }
                         return ResponseEntity.ok(responseHelper.constructionResult(0, "补助及现金不足", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
                     }
                 }
             }
         }
-//            if (isConsume) {
-////                return ResponseEntity.ok(responseHelper.constructionResult(0, "消费机消费模式配置错误", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter));
-//            } else {
-//                return ResponseEntity.ok(responseHelper.constructionResultForBalance(0, "消费机消费模式配置错误"));
-//            }
         return ResponseEntity.ok(responseHelper.constructionResult(0, "消费机消费模式配置错误", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
     }
 
-
+    @PostMapping("/WhiteList")
+    public WhiteListVo whiteList(@RequestHeader("Device-ID") String deviceId, @RequestBody WhiteListDto whiteListDto) {
+        WhiteListVo whiteListVo = new WhiteListVo();
+        whiteListVo.setStatus(1);
+        whiteListVo.setMsg("");
+        List<WatDevicejobRecord> watDevicejobRecordList = watDeviceJobRecordService.getByDeviceId(deviceId);
+        if (ObjectUtils.isNotEmpty(watDevicejobRecordList)) {
+            StringBuilder resultBuilder = new StringBuilder();
+            //定义operation默认为1代表操作添加白名单
+            int operation = 1;
+            int count = 0;
+            for (WatDevicejobRecord watDevicejobRecord : watDevicejobRecordList) {
+                if (count >= 10) {
+                    break;
+                }
+                //当任务类型为删除人员的时候，把这条数据的operation修改为0操作删除白名单
+                if (watDevicejobRecord.getDeviceJobTypeID() == 3) {
+                    operation = 0;
+                }
+                VEmployeeData vEmployeeData = viewEmployeeDataService.getByEmployeeId(watDevicejobRecord.getEmployeeID());
+                if (ObjectUtils.isNotEmpty(vEmployeeData)) {
+                    String cardSerNo = vEmployeeData.getCardSerNo().toString();
+                    if (cardSerNo.length() < 10) {
+                        cardSerNo = String.format("%010d", vEmployeeData.getCardSerNo());
+                    }
+                    String result = watDevicejobRecord.getEmployeeID() + "|" + cardSerNo + "|" + operation;
+                    if (resultBuilder.length() > 0) {
+                        resultBuilder.append(",");
+                    }
+                    resultBuilder.append(result);
+                    //把任务状态改成完成
+                    watDevicejobRecord.setDeviceJobStatus(1);
+                    watDeviceJobRecordService.updateById(watDevicejobRecord);
+                }
+                count++;
+            }
+            String finalResult = resultBuilder.toString();
+            //1|0000000001|1 序号|卡号|操作
+            whiteListVo.setWhiteListData(finalResult);
+        }
+        whiteListVo.setCommId(whiteListDto.getCommId());
+        whiteListVo.setPage(whiteListDto.getPage());
+        whiteListVo.setPageLength(watDevicejobRecordList.size());
+        whiteListVo.setUpdate(0);
+        return whiteListVo;
+    }
 }

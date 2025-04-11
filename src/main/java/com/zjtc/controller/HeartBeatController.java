@@ -3,7 +3,6 @@ package com.zjtc.controller;
 import com.zjtc.Utils.TimeUtils;
 import com.zjtc.config.ApiMonitorService;
 import com.zjtc.dto.ServerTimeDto;
-import com.zjtc.dto.WhiteDevice;
 import com.zjtc.entity.WatDevice;
 import com.zjtc.entity.WatDevicejobRecord;
 import com.zjtc.entity.WatDeviceparameter;
@@ -17,9 +16,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 
 import static com.zjtc.config.ApiMonitorService.WHITE_LIST;
