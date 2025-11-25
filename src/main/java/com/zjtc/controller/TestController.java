@@ -2,11 +2,13 @@ package com.zjtc.controller;
 
 import com.zjtc.Utils.MathUtils;
 import com.zjtc.dto.ConsumTransactionsDto;
+import com.zjtc.dto.OffLinesDto;
 import com.zjtc.dto.WhiteListDto;
 import com.zjtc.entity.*;
 import com.zjtc.helper.RecordHelper;
 import com.zjtc.helper.ResponseHelper;
 import com.zjtc.service.*;
+import com.zjtc.vo.OffLinesVo;
 import com.zjtc.vo.WhiteListVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -112,13 +114,13 @@ public class TestController {
                     //先算出来预扣的钱是多少
                     String preAmountForTime = calculatePreAmountForTime(watCardrate.getCardRate(), new BigDecimal(watDeviceparameter.getMinimumUnit()), watDeviceparameter.getPreAmount(), watDeviceparameter);
                     if (new BigDecimal(consumTransactionsDto.getAmount()).compareTo(new BigDecimal(preAmountForTime)) >= 0) {
-                        return priorityTypeDecision(watDevice, employeeBags, new BigDecimal(consumTransactionsDto.getAmount()).divide(new BigDecimal(10),2, RoundingMode.HALF_UP), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, watCardrate, watDeviceparameter, true);
+                        return priorityTypeDecision(watDevice, employeeBags, new BigDecimal(consumTransactionsDto.getAmount()).divide(new BigDecimal(10), 2, RoundingMode.HALF_UP), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, watCardrate, watDeviceparameter, true);
                     } else {
                         return priorityTypeDecision(watDevice, employeeBags, new BigDecimal(consumTransactionsDto.getAmount()), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, watCardrate, watDeviceparameter, true);
                     }
                 } else {
                     //todo 计量常出
-                    return priorityTypeDecision(watDevice, employeeBags, new BigDecimal(consumTransactionsDto.getAmount()).divide(new BigDecimal(10),2, RoundingMode.HALF_UP), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, watCardrate, watDeviceparameter, true);
+                    return priorityTypeDecision(watDevice, employeeBags, new BigDecimal(consumTransactionsDto.getAmount()).divide(new BigDecimal(10), 2, RoundingMode.HALF_UP), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, watCardrate, watDeviceparameter, true);
                 }
             }
         }
@@ -375,4 +377,14 @@ public class TestController {
         whiteListVo.setUpdate(0);
         return whiteListVo;
     }
+
+    @PostMapping("/OffLines")
+    public OffLinesVo offLines(@RequestHeader("Device-ID") String deviceId, @RequestBody OffLinesDto offLinesDto) {
+        OffLinesVo offLinesVo = new OffLinesVo();
+        offLinesVo.setStatus(1);
+        offLinesVo.setMsg("");
+        offLinesVo.setOrder(offLinesDto.getOrder());
+        return offLinesVo;
+    }
+
 }

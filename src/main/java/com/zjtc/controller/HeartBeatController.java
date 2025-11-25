@@ -51,12 +51,13 @@ public class HeartBeatController {
         } else {
             //更新设备为在线
             apiMonitorService.onLine(watDevice);
+            WHITE_LIST.add(deviceId);
         }
         serverTimeVo.setStatus(1);
         serverTimeVo.setMsg("");
         serverTimeVo.setTime(TimeUtils.heartBeatTime());
         serverTimeVo.setWhiteListUpDate(0);
-        serverTimeVo.setWhiteListPage(1);
+        serverTimeVo.setWhiteListPage(0);
         serverTimeVo.setDoubleControl(1);
         serverTimeVo.setOffAmount(0D);
         WatDeviceparameter watDeviceparameter = watDeviceParameterService.getByDeviceId(watDevice.getDeviceID());
@@ -74,13 +75,14 @@ public class HeartBeatController {
         List<WatDevicejobRecord> watDevicejobRecordList = watDeviceJobRecordService.getByDeviceId(deviceId);
         //判断是否有设备白名单任务
         for (WatDevicejobRecord watDevicejobRecord : watDevicejobRecordList) {
-            if (watDevicejobRecord.getDeviceJobTypeID() == 4) {
-                WHITE_LIST.add(deviceId);
-                watDeviceJobRecordService.removeById(watDevicejobRecord);
-            }
+//            if (watDevicejobRecord.getDeviceJobTypeID() == 4) {
+//                WHITE_LIST.add(deviceId);
+//                watDeviceJobRecordService.removeById(watDevicejobRecord);
+//            }
         }
         if (ObjectUtils.isNotEmpty(watDevicejobRecordList)) {
             serverTimeVo.setWhiteListUpDate(1);
+            serverTimeVo.setWhiteListPage(1);
         }
         if (ObjectUtils.isNotEmpty(watDeviceJobRecordService.getByDeviceJobTypeId())) {
             serverTimeVo.setWhiteListUpDate(1);
