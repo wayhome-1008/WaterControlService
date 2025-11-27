@@ -4,15 +4,18 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+
 import lombok.Getter;
 import lombok.Setter;
 
 /**
  * <p>
- * 
+ *
  * </p>
  *
  * @author way
@@ -51,6 +54,13 @@ public class CardType implements Serializable {
 
     @TableField("CardCost")
     private BigDecimal cardCost;
+
+    @TableField("CardPeriodStartTime")
+    private LocalTime cardPeriodStartTime;
+
+    @TableField("CardPeriodEndTime")
+    private LocalTime cardPeriodEndTime;
+
 
     @TableField("CreateUserID")
     private Integer createUserID;
