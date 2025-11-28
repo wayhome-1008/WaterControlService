@@ -345,7 +345,7 @@ public class TestController {
         if (washDevice.getPriorityType() == 4) {
             //仅现金消费
             recordHelper.cashPaymentOnly(washDevice, employeeBags, amount, grantsEmployeeBags, consumTransactionsDto, cardData);
-            return ResponseEntity.ok(responseHelper.constructionResult(1, "现金消费", employeeBags, grantsEmployeeBags, consumTransactionsDto, amount, deviceSn, cardRate, watDeviceparameter, isConsume));
+            return createOffLinesResult(1, "现金消费", consumTransactionsDto.getOrder(), cardData.getEmployeeID(), deviceSn, amount);
         }
         //3.仅补助
         else if (washDevice.getPriorityType() == 3) {
@@ -563,9 +563,21 @@ public class TestController {
                 return priorityTypeDecisionOffLine(watDevice, employeeBags, new BigDecimal(offLinesDto.getMoney()).divide(new BigDecimal(10), 2, RoundingMode.HALF_UP), grantsEmployeeBags, consumTransactionsDto, cardData, deviceId, watCardrate, watDeviceparameter, true);
             }
         }
-
         return null;
     }
 
+    private OffLinesVo createOffLinesResult(int status, String msg, String order, Integer employeeId, String deviceSn, BigDecimal amount) {
+        OffLinesVo offLinesVo = new OffLinesVo();
+        offLinesVo.setStatus(status);
+        offLinesVo.setMsg(msg);
+        offLinesVo.setOrder(order);
+        if (status == 1 && ObjectUtils.isNotEmpty(employeeId)) {
+            //成功则异步发送WX消息
+            asyncService.sendWxMsg(employeeId, deviceSn, amount, order, "脱机交易");
+        } else {
+            asyncService.sendWxMsgFail(employeeId, deviceSn, amount, order, msg, "脱机交易");
+        }
+        return offLinesVo;
+    }
 
 }
